@@ -1,21 +1,20 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import {
-    AuthorAddress,
-    Workspace,
     WorkspaceAddress,
     AuthorKeypair,
+    AuthorAddress,
 } from 'earthstar';
+import { notNull } from './util';
 import { Emitter } from './emitter';
-import { PassThrough } from 'stream';
-import { sleep } from './util';
+import { Thunk } from './types';
 let log = console.log;
 
 //================================================================================
 
-type Params = { [key:string] : string };
+type HashParams = { [key:string] : string };
 
-let getHashParams = () : Params => {
+let getHashParams = () : HashParams => {
     if (!window.location.hash) { return {}; }
     let params : { [key:string] : string } = {};
     let USParams = new URLSearchParams(window.location.hash.slice(1)); // remove leading '#'
@@ -24,7 +23,7 @@ let getHashParams = () : Params => {
     }
     return params;
 }
-let setHashParams = (params : Params) : void => {
+let setHashParams = (params : HashParams) : void => {
     let newHash = Object.entries(params)
         .map(([k, v]) => `${k}=${v}`)
         .join('&');
@@ -35,91 +34,108 @@ let setHashParams = (params : Params) : void => {
 
 //================================================================================
 
-let LOGINS_LOCALSTORAGE_KEY = 'earthstar-logins';
-type Logins = {
-    // most recent user first, per workspace
-    // an author of null means guest mode
-    // the array should never be empty
-    [workspace : string] : Array<AuthorKeypair | null>;
+let LOGIN_HISTORY_LOCALSTORAGE_KEY = 'earthstar-logins';
+type LoginHistory = {
+    workspaceAddresses : (WorkspaceAddress | null)[];  // most recent first
+    authorKeypairs : (AuthorKeypair | null)[];  // most recent first.  null = guest mode
+    // servers : string[];  // TODO
 }
-
 
 // expected url hash params:
 // #workspace=gardening.xxxx
-// note no plus on the workspace address, because it has to be percent-encoded.
+// note we omit the plus on the workspace address, because it would have to be percent-encoded.
 // if workspace is null, it's absent from the url hash.
 class LoginStorage {
-    // if workspace is null, author is also always null
     workspaceAddress : WorkspaceAddress | null;
     authorKeypair : AuthorKeypair | null;
-    _logins : Logins;
+    history : LoginHistory;
     onChange : Emitter<undefined>;
     constructor() {
         log('LoginStorage constructor');
         this.onChange = new Emitter<undefined>();
-        this._logins = {};
-        // load _logins from localStorage
-        let raw = localStorage.getItem(LOGINS_LOCALSTORAGE_KEY);
+        this.history = {
+            workspaceAddresses: [null],
+            authorKeypairs: [null],
+        }
+
+        // load history from localStorage
+        let raw = localStorage.getItem(LOGIN_HISTORY_LOCALSTORAGE_KEY);
         if (raw) {
             try {
-                this._logins = JSON.parse(raw);
+                this.history = JSON.parse(raw);
             } catch (e) {
             }
         }
-        log('..._logins:', this._logins);
+        log('...history:', this.history);
+
         // load workspaceAddress from hash params
         this.workspaceAddress = getHashParams().workspace || null;
         if (this.workspaceAddress) {
             // restore '+'
             this.workspaceAddress = this.workspaceAddress.trim();
             if (!this.workspaceAddress.startsWith('+')) { this.workspaceAddress = '+' + this.workspaceAddress; }
+            // save to front of history workspace list (as most recent)
+            this.history.workspaceAddresses = this.history.workspaceAddresses.filter(w => w !== this.workspaceAddress);
+            this.history.workspaceAddresses.unshift(this.workspaceAddress);
+            this._saveLogins();
         }
         log('...loaded workspace from hash:', this.workspaceAddress);
-        if (this.workspaceAddress === null) {
-            this.authorKeypair = null;
-        } else {
-            // load latest author from _logins for this workspace
-            let authorsForThisWorkspace = this._logins[this.workspaceAddress] || [];
-            this.authorKeypair = authorsForThisWorkspace[0] || null;
-            // add this workspace to _logins if it's not there
-            if (this._logins[this.workspaceAddress] === undefined) {
-                log('...this is a new workspace; saving it to logins with a null author');
-                this._logins[this.workspaceAddress] = [null];
-                this._saveLogins();
-            }
+
+
+        // load latest author from history
+        if (this.history.authorKeypairs.length == 0) {
+            this.history.authorKeypairs = [null];
         }
-        log('...loaded author from _logins:', this.authorKeypair);
+        this.authorKeypair = this.history.authorKeypairs[0];
+        log('...loaded author from history: ', this.authorKeypair);
     }
     _saveLogins() {
-        log('    saving _logins');
-        localStorage.setItem(LOGINS_LOCALSTORAGE_KEY, JSON.stringify(this._logins));
+        log('        saving history');
+        localStorage.setItem(LOGIN_HISTORY_LOCALSTORAGE_KEY, JSON.stringify(this.history));
     }
-    setWorkspaceAndAuthor(workspaceAddress : WorkspaceAddress | null, authorKeypair : AuthorKeypair | null) {
-        log('set workspace to ' + workspaceAddress + ' and author to ' + (authorKeypair?.address || 'null'));
-        if (workspaceAddress === null && authorKeypair !== null) { throw new Error("null workspace must have null author"); }
-
+    setWorkspace(workspaceAddress : WorkspaceAddress | null) {
+        log('setWorkspace(' + workspaceAddress + ')');
         this.workspaceAddress = workspaceAddress;
-        this.authorKeypair = authorKeypair;
-
+        // update history to move workspace to the beginning of the list (most recent)
+        log('...updating history');
+        this.history.workspaceAddresses = this.history.workspaceAddresses.filter(w => w !== workspaceAddress);
+        this.history.workspaceAddresses.unshift(workspaceAddress);
+        this._saveLogins();
+        // update hash params.
         if (workspaceAddress === null) {
-            // don't need to update _logins.
-            // update hash params.
             log('...removing workspace from hash params');
             let params = getHashParams();
             delete params.workspace;
             setHashParams(params);
         } else {
-            // update _logins to move author to the beginning of the authors list
-            log('...setting author as most recent author for this workspace');
-            this._logins[workspaceAddress] = (this._logins[workspaceAddress] || []).filter(a => a !== authorKeypair);
-            this._logins[workspaceAddress].unshift(authorKeypair);
-            this._saveLogins();
-            // update hash params
-            log('...setting workspace in hash params');
+            log('...updating workspace in hash params');
             let params = getHashParams();
             params.workspace = workspaceAddress.slice(1);  // remove '+'
             setHashParams(params);
         }
+        this.onChange.send(undefined);
+    }
+    setAuthorAddress(authorAddress : AuthorAddress | null) {
+        if (authorAddress === null) {
+            this.setAuthorKeypair(null);
+            return;
+        }
+        for (let kp of this.history.authorKeypairs) {
+            if (kp !== null && kp.address === authorAddress) {
+                this.setAuthorKeypair(kp);
+                return;
+            }
+        }
+        console.warn('setAuthorAddress: could not find keypair with address = ', JSON.stringify(authorAddress));
+    }
+    setAuthorKeypair(authorKeypair : AuthorKeypair | null) { 
+        log('setAuthorKeypair:', authorKeypair);
+        // update history to move author to the beginning of the list (most recent)
+        // note that the authorKeypair list includes a null representing guest mode
+        this.authorKeypair = authorKeypair;
+        log('...updating history');
+        this.history.authorKeypairs = this.history.authorKeypairs.filter(a => a !== authorKeypair);
+        this.history.authorKeypairs.unshift(authorKeypair);
         this.onChange.send(undefined);
     }
 }
@@ -136,24 +152,54 @@ let sBarItem : React.CSSProperties = {
     flexShrink: 1,
 }
 
-type LoginBarProps = {
-    loginStorage : LoginStorage,
+
+interface LoginBarProps {
+    loginStorage : LoginStorage;
 }
-const LoginBarView : React.FunctionComponent<LoginBarProps> = (props) => {
-    let wsAddress = props.loginStorage.workspaceAddress;
-    let authorAddress = props.loginStorage.authorKeypair?.address;
-    return <div style={sBar}>
-        {wsAddress
-          ? <div style={sBarItem}><b>{wsAddress}</b></div>
-          : <div style={sBarItem}><a href="">choose a workspace</a></div>
-        }
-        {authorAddress
-          ? <div style={sBarItem}><b>{authorAddress}</b></div>
-          : <div style={sBarItem}>guest mode. <a href="">log in</a></div>
-        }
-        <div style={sBarItem}><a href="/apps">apps</a></div>
-        <div style={sBarItem}><i>syncing with 3 servers</i></div>
-    </div>
+class LoginBarView extends React.Component<LoginBarProps, any> {
+    unsub : Thunk | null = null;
+    componentDidMount() {
+        log('LoginBarView: subscribing to loginStorage changes');
+        this.unsub = this.props.loginStorage.onChange.subscribe(() => {
+            log('LoginBarView: loginStorage changed; re-rendering');
+            this.forceUpdate();
+        });
+    }
+    componentWillUnmount() {
+        if (this.unsub) { this.unsub(); }
+    }
+    render() {
+        log('LoginBarView: render');
+        let loginStorage = this.props.loginStorage;
+        return <div style={sBar}>
+            <div style={sBarItem}>
+                <select
+                    value={loginStorage.workspaceAddress || 'null'}
+                    onChange={(e) => loginStorage.setWorkspace(e.target.value == 'null' ? null : e.target.value)}
+                    >
+                    <option value="null">(no workspace)</option>
+                    {notNull(loginStorage.history.workspaceAddresses).map(wa =>
+                        <option key={wa} value={wa}>{wa}</option>
+                    )}
+                </select>
+            </div>
+            <div style={sBarItem}>
+                <select
+                    value={loginStorage.authorKeypair == null ? 'null' : loginStorage.authorKeypair.address}
+                    onChange={(e) => loginStorage.setAuthorAddress(e.target.value == 'null' ? null : e.target.value)}
+                    >
+                    <option value="null">(no author)</option>
+                    {notNull(loginStorage.history.authorKeypairs).map(keypair =>
+                        <option key={keypair.address} value={keypair.address}>{keypair.address}</option>
+                    )}
+                </select>
+            </div>
+            <div style={sBarItem}>
+                <i>3 servers</i>
+                <button type="button">sync now</button>
+            </div>
+        </div>
+    }
 }
 
 //================================================================================
