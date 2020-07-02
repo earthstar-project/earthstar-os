@@ -1,11 +1,12 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
+import deepEqual = require('fast-deep-equal');
 import {
     WorkspaceAddress,
     AuthorKeypair,
     AuthorAddress,
 } from 'earthstar';
-import { notNull } from './util';
+import { notNull, sorted } from './util';
 import { Emitter } from './emitter';
 import { Thunk } from './types';
 let log = console.log;
@@ -77,7 +78,7 @@ class LoginStorage {
             // save to front of history workspace list (as most recent)
             this.history.workspaceAddresses = this.history.workspaceAddresses.filter(w => w !== this.workspaceAddress);
             this.history.workspaceAddresses.unshift(this.workspaceAddress);
-            this._saveLogins();
+            this._saveHistory();
         }
         log('...loaded workspace from hash:', this.workspaceAddress);
 
@@ -89,7 +90,7 @@ class LoginStorage {
         this.authorKeypair = this.history.authorKeypairs[0];
         log('...loaded author from history: ', this.authorKeypair);
     }
-    _saveLogins() {
+    _saveHistory() {
         log('        saving history');
         localStorage.setItem(LOGIN_HISTORY_LOCALSTORAGE_KEY, JSON.stringify(this.history));
     }
@@ -100,7 +101,7 @@ class LoginStorage {
         log('...updating history');
         this.history.workspaceAddresses = this.history.workspaceAddresses.filter(w => w !== workspaceAddress);
         this.history.workspaceAddresses.unshift(workspaceAddress);
-        this._saveLogins();
+        this._saveHistory();
         // update hash params.
         if (workspaceAddress === null) {
             log('...removing workspace from hash params');
@@ -116,6 +117,7 @@ class LoginStorage {
         this.onChange.send(undefined);
     }
     setAuthorAddress(authorAddress : AuthorAddress | null) {
+        // a helper for when you only know the address, not the whole keypair
         if (authorAddress === null) {
             this.setAuthorKeypair(null);
             return;
@@ -130,12 +132,15 @@ class LoginStorage {
     }
     setAuthorKeypair(authorKeypair : AuthorKeypair | null) { 
         log('setAuthorKeypair:', authorKeypair);
+        this.authorKeypair = authorKeypair;
+
         // update history to move author to the beginning of the list (most recent)
         // note that the authorKeypair list includes a null representing guest mode
-        this.authorKeypair = authorKeypair;
         log('...updating history');
-        this.history.authorKeypairs = this.history.authorKeypairs.filter(a => a !== authorKeypair);
+        this.history.authorKeypairs = this.history.authorKeypairs.filter(a => !deepEqual(a, authorKeypair));
         this.history.authorKeypairs.unshift(authorKeypair);
+        this._saveHistory();
+
         this.onChange.send(undefined);
     }
 }
@@ -178,7 +183,7 @@ class LoginBarView extends React.Component<LoginBarProps, any> {
                     onChange={(e) => loginStorage.setWorkspace(e.target.value == 'null' ? null : e.target.value)}
                     >
                     <option value="null">(no workspace)</option>
-                    {notNull(loginStorage.history.workspaceAddresses).map(wa =>
+                    {sorted(notNull(loginStorage.history.workspaceAddresses)).map(wa =>
                         <option key={wa} value={wa}>{wa}</option>
                     )}
                 </select>
@@ -189,8 +194,8 @@ class LoginBarView extends React.Component<LoginBarProps, any> {
                     onChange={(e) => loginStorage.setAuthorAddress(e.target.value == 'null' ? null : e.target.value)}
                     >
                     <option value="null">(no author)</option>
-                    {notNull(loginStorage.history.authorKeypairs).map(keypair =>
-                        <option key={keypair.address} value={keypair.address}>{keypair.address}</option>
+                    {sorted(notNull(loginStorage.history.authorKeypairs).map(kp => kp.address)).map(authorAddress =>
+                        <option key={authorAddress} value={authorAddress}>{authorAddress.slice(0, 6 + 6) + '...'}</option>
                     )}
                 </select>
             </div>
@@ -205,6 +210,28 @@ class LoginBarView extends React.Component<LoginBarProps, any> {
 //================================================================================
 
 let loginStorage = new LoginStorage();
+
+let demoKeypairs : AuthorKeypair[] = [
+    {
+        address: "@abcd.Evwdch1up4ecf3bxNjaKFy9CEZpizLPreYu3J7tQELUw",
+        secret: "6qdayaEK2uiDZknVVNuz7PfcbCNaT3yDzd3b3GBw5pAo"
+    },
+    {
+        address: "@suzy.D79SNKuFsNKGhHgzGsvWG9V8JQG8MwyjSrvkjDQ2mVZD",
+        secret: "2nwvseUKu6mxSFu3YnFCdTFw5Pyud1aBW997XCVs6LDn"
+    },
+    {
+        address: "@fooo.A14CghnKZSsEiShRfgPHPQpstWsLfqFELGwinyPCPzaK",
+        secret: "HDGn792ZFeAa2HWpWRBhVGsb7uQJKwxUT4wSKvJxcgSf"
+    }
+]
+//demoKeypairs.forEach(kp => loginStorage.setAuthorKeypair(kp));
+//loginStorage.setAuthorKeypair(null);
+
+//loginStorage.setWorkspace('+sailing.xxxx');
+//loginStorage.setWorkspace('+gardening.xxxx');
+//loginStorage.setWorkspace('+solarpunk.xxxxxxx');
+//loginStorage.setWorkspace(null);
 
 ReactDOM.render(
     <LoginBarView loginStorage={loginStorage} />,

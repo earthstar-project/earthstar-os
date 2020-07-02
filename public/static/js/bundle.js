@@ -1,4 +1,52 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+'use strict';
+
+// do not edit .js files directly - edit src/index.jst
+
+
+
+module.exports = function equal(a, b) {
+  if (a === b) return true;
+
+  if (a && b && typeof a == 'object' && typeof b == 'object') {
+    if (a.constructor !== b.constructor) return false;
+
+    var length, i, keys;
+    if (Array.isArray(a)) {
+      length = a.length;
+      if (length != b.length) return false;
+      for (i = length; i-- !== 0;)
+        if (!equal(a[i], b[i])) return false;
+      return true;
+    }
+
+
+
+    if (a.constructor === RegExp) return a.source === b.source && a.flags === b.flags;
+    if (a.valueOf !== Object.prototype.valueOf) return a.valueOf() === b.valueOf();
+    if (a.toString !== Object.prototype.toString) return a.toString() === b.toString();
+
+    keys = Object.keys(a);
+    length = keys.length;
+    if (length !== Object.keys(b).length) return false;
+
+    for (i = length; i-- !== 0;)
+      if (!Object.prototype.hasOwnProperty.call(b, keys[i])) return false;
+
+    for (i = length; i-- !== 0;) {
+      var key = keys[i];
+
+      if (!equal(a[key], b[key])) return false;
+    }
+
+    return true;
+  }
+
+  // true if both NaN, false otherwise
+  return a!==a && b!==b;
+};
+
+},{}],2:[function(require,module,exports){
 /*
 object-assign
 (c) Sindre Sorhus
@@ -90,7 +138,7 @@ module.exports = shouldUseNative() ? Object.assign : function (target, source) {
 	return to;
 };
 
-},{}],2:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -276,7 +324,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 (function (process){
 /**
  * Copyright (c) 2013-present, Facebook, Inc.
@@ -382,7 +430,7 @@ checkPropTypes.resetWarningCache = function() {
 module.exports = checkPropTypes;
 
 }).call(this,require('_process'))
-},{"./lib/ReactPropTypesSecret":4,"_process":2}],4:[function(require,module,exports){
+},{"./lib/ReactPropTypesSecret":5,"_process":3}],5:[function(require,module,exports){
 /**
  * Copyright (c) 2013-present, Facebook, Inc.
  *
@@ -396,7 +444,7 @@ var ReactPropTypesSecret = 'SECRET_DO_NOT_PASS_THIS_OR_YOU_WILL_BE_FIRED';
 
 module.exports = ReactPropTypesSecret;
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 (function (process){
 /** @license React v16.13.1
  * react-dom.development.js
@@ -25412,7 +25460,7 @@ exports.version = ReactVersion;
 }
 
 }).call(this,require('_process'))
-},{"_process":2,"object-assign":1,"prop-types/checkPropTypes":3,"react":10,"scheduler":15,"scheduler/tracing":16}],6:[function(require,module,exports){
+},{"_process":3,"object-assign":2,"prop-types/checkPropTypes":4,"react":11,"scheduler":16,"scheduler/tracing":17}],7:[function(require,module,exports){
 /** @license React v16.13.1
  * react-dom.production.min.js
  *
@@ -25706,7 +25754,7 @@ exports.flushSync=function(a,b){if((W&(fj|gj))!==V)throw Error(u(187));var c=W;W
 exports.unmountComponentAtNode=function(a){if(!gk(a))throw Error(u(40));return a._reactRootContainer?(Nj(function(){ik(null,null,a,!1,function(){a._reactRootContainer=null;a[Od]=null})}),!0):!1};exports.unstable_batchedUpdates=Mj;exports.unstable_createPortal=function(a,b){return kk(a,b,2<arguments.length&&void 0!==arguments[2]?arguments[2]:null)};
 exports.unstable_renderSubtreeIntoContainer=function(a,b,c,d){if(!gk(c))throw Error(u(200));if(null==a||void 0===a._reactInternalFiber)throw Error(u(38));return ik(a,b,c,!1,d)};exports.version="16.13.1";
 
-},{"object-assign":1,"react":10,"scheduler":15}],7:[function(require,module,exports){
+},{"object-assign":2,"react":11,"scheduler":16}],8:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -25748,7 +25796,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 }).call(this,require('_process'))
-},{"./cjs/react-dom.development.js":5,"./cjs/react-dom.production.min.js":6,"_process":2}],8:[function(require,module,exports){
+},{"./cjs/react-dom.development.js":6,"./cjs/react-dom.production.min.js":7,"_process":3}],9:[function(require,module,exports){
 (function (process){
 /** @license React v16.13.1
  * react.development.js
@@ -27664,7 +27712,7 @@ exports.version = ReactVersion;
 }
 
 }).call(this,require('_process'))
-},{"_process":2,"object-assign":1,"prop-types/checkPropTypes":3}],9:[function(require,module,exports){
+},{"_process":3,"object-assign":2,"prop-types/checkPropTypes":4}],10:[function(require,module,exports){
 /** @license React v16.13.1
  * react.production.min.js
  *
@@ -27691,7 +27739,7 @@ key:d,ref:g,props:e,_owner:k}};exports.createContext=function(a,b){void 0===b&&(
 exports.lazy=function(a){return{$$typeof:A,_ctor:a,_status:-1,_result:null}};exports.memo=function(a,b){return{$$typeof:z,type:a,compare:void 0===b?null:b}};exports.useCallback=function(a,b){return Z().useCallback(a,b)};exports.useContext=function(a,b){return Z().useContext(a,b)};exports.useDebugValue=function(){};exports.useEffect=function(a,b){return Z().useEffect(a,b)};exports.useImperativeHandle=function(a,b,c){return Z().useImperativeHandle(a,b,c)};
 exports.useLayoutEffect=function(a,b){return Z().useLayoutEffect(a,b)};exports.useMemo=function(a,b){return Z().useMemo(a,b)};exports.useReducer=function(a,b,c){return Z().useReducer(a,b,c)};exports.useRef=function(a){return Z().useRef(a)};exports.useState=function(a){return Z().useState(a)};exports.version="16.13.1";
 
-},{"object-assign":1}],10:[function(require,module,exports){
+},{"object-assign":2}],11:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -27702,7 +27750,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 }).call(this,require('_process'))
-},{"./cjs/react.development.js":8,"./cjs/react.production.min.js":9,"_process":2}],11:[function(require,module,exports){
+},{"./cjs/react.development.js":9,"./cjs/react.production.min.js":10,"_process":3}],12:[function(require,module,exports){
 (function (process){
 /** @license React v0.19.1
  * scheduler-tracing.development.js
@@ -28055,7 +28103,7 @@ exports.unstable_wrap = unstable_wrap;
 }
 
 }).call(this,require('_process'))
-},{"_process":2}],12:[function(require,module,exports){
+},{"_process":3}],13:[function(require,module,exports){
 /** @license React v0.19.1
  * scheduler-tracing.production.min.js
  *
@@ -28067,7 +28115,7 @@ exports.unstable_wrap = unstable_wrap;
 
 'use strict';var b=0;exports.__interactionsRef=null;exports.__subscriberRef=null;exports.unstable_clear=function(a){return a()};exports.unstable_getCurrent=function(){return null};exports.unstable_getThreadID=function(){return++b};exports.unstable_subscribe=function(){};exports.unstable_trace=function(a,d,c){return c()};exports.unstable_unsubscribe=function(){};exports.unstable_wrap=function(a){return a};
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 (function (process){
 /** @license React v0.19.1
  * scheduler.development.js
@@ -28929,7 +28977,7 @@ exports.unstable_wrapCallback = unstable_wrapCallback;
 }
 
 }).call(this,require('_process'))
-},{"_process":2}],14:[function(require,module,exports){
+},{"_process":3}],15:[function(require,module,exports){
 /** @license React v0.19.1
  * scheduler.production.min.js
  *
@@ -28952,7 +29000,7 @@ exports.unstable_getCurrentPriorityLevel=function(){return R};exports.unstable_g
 exports.unstable_scheduleCallback=function(a,b,c){var d=exports.unstable_now();if("object"===typeof c&&null!==c){var e=c.delay;e="number"===typeof e&&0<e?d+e:d;c="number"===typeof c.timeout?c.timeout:Y(a)}else c=Y(a),e=d;c=e+c;a={id:P++,callback:b,priorityLevel:a,startTime:e,expirationTime:c,sortIndex:-1};e>d?(a.sortIndex=e,J(O,a),null===L(N)&&a===L(O)&&(U?h():U=!0,g(W,e-d))):(a.sortIndex=c,J(N,a),T||S||(T=!0,f(X)));return a};
 exports.unstable_shouldYield=function(){var a=exports.unstable_now();V(a);var b=L(N);return b!==Q&&null!==Q&&null!==b&&null!==b.callback&&b.startTime<=a&&b.expirationTime<Q.expirationTime||k()};exports.unstable_wrapCallback=function(a){var b=R;return function(){var c=R;R=b;try{return a.apply(this,arguments)}finally{R=c}}};
 
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -28963,7 +29011,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 }).call(this,require('_process'))
-},{"./cjs/scheduler.development.js":13,"./cjs/scheduler.production.min.js":14,"_process":2}],16:[function(require,module,exports){
+},{"./cjs/scheduler.development.js":14,"./cjs/scheduler.production.min.js":15,"_process":3}],17:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -28974,7 +29022,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 }).call(this,require('_process'))
-},{"./cjs/scheduler-tracing.development.js":11,"./cjs/scheduler-tracing.production.min.js":12,"_process":2}],17:[function(require,module,exports){
+},{"./cjs/scheduler-tracing.development.js":12,"./cjs/scheduler-tracing.production.min.js":13,"_process":3}],18:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -28998,6 +29046,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const React = __importStar(require("react"));
 const ReactDOM = __importStar(require("react-dom"));
+const deepEqual = require("fast-deep-equal");
 const util_1 = require("./util");
 const emitter_1 = require("./emitter");
 let log = console.log;
@@ -29055,7 +29104,7 @@ class LoginStorage {
             // save to front of history workspace list (as most recent)
             this.history.workspaceAddresses = this.history.workspaceAddresses.filter(w => w !== this.workspaceAddress);
             this.history.workspaceAddresses.unshift(this.workspaceAddress);
-            this._saveLogins();
+            this._saveHistory();
         }
         log('...loaded workspace from hash:', this.workspaceAddress);
         // load latest author from history
@@ -29065,7 +29114,7 @@ class LoginStorage {
         this.authorKeypair = this.history.authorKeypairs[0];
         log('...loaded author from history: ', this.authorKeypair);
     }
-    _saveLogins() {
+    _saveHistory() {
         log('        saving history');
         localStorage.setItem(LOGIN_HISTORY_LOCALSTORAGE_KEY, JSON.stringify(this.history));
     }
@@ -29076,7 +29125,7 @@ class LoginStorage {
         log('...updating history');
         this.history.workspaceAddresses = this.history.workspaceAddresses.filter(w => w !== workspaceAddress);
         this.history.workspaceAddresses.unshift(workspaceAddress);
-        this._saveLogins();
+        this._saveHistory();
         // update hash params.
         if (workspaceAddress === null) {
             log('...removing workspace from hash params');
@@ -29093,6 +29142,7 @@ class LoginStorage {
         this.onChange.send(undefined);
     }
     setAuthorAddress(authorAddress) {
+        // a helper for when you only know the address, not the whole keypair
         if (authorAddress === null) {
             this.setAuthorKeypair(null);
             return;
@@ -29107,12 +29157,13 @@ class LoginStorage {
     }
     setAuthorKeypair(authorKeypair) {
         log('setAuthorKeypair:', authorKeypair);
+        this.authorKeypair = authorKeypair;
         // update history to move author to the beginning of the list (most recent)
         // note that the authorKeypair list includes a null representing guest mode
-        this.authorKeypair = authorKeypair;
         log('...updating history');
-        this.history.authorKeypairs = this.history.authorKeypairs.filter(a => a !== authorKeypair);
+        this.history.authorKeypairs = this.history.authorKeypairs.filter(a => !deepEqual(a, authorKeypair));
         this.history.authorKeypairs.unshift(authorKeypair);
+        this._saveHistory();
         this.onChange.send(undefined);
     }
 }
@@ -29150,11 +29201,11 @@ class LoginBarView extends React.Component {
             React.createElement("div", { style: sBarItem },
                 React.createElement("select", { value: loginStorage.workspaceAddress || 'null', onChange: (e) => loginStorage.setWorkspace(e.target.value == 'null' ? null : e.target.value) },
                     React.createElement("option", { value: "null" }, "(no workspace)"),
-                    util_1.notNull(loginStorage.history.workspaceAddresses).map(wa => React.createElement("option", { key: wa, value: wa }, wa)))),
+                    util_1.sorted(util_1.notNull(loginStorage.history.workspaceAddresses)).map(wa => React.createElement("option", { key: wa, value: wa }, wa)))),
             React.createElement("div", { style: sBarItem },
                 React.createElement("select", { value: loginStorage.authorKeypair == null ? 'null' : loginStorage.authorKeypair.address, onChange: (e) => loginStorage.setAuthorAddress(e.target.value == 'null' ? null : e.target.value) },
                     React.createElement("option", { value: "null" }, "(no author)"),
-                    util_1.notNull(loginStorage.history.authorKeypairs).map(keypair => React.createElement("option", { key: keypair.address, value: keypair.address }, keypair.address)))),
+                    util_1.sorted(util_1.notNull(loginStorage.history.authorKeypairs).map(kp => kp.address)).map(authorAddress => React.createElement("option", { key: authorAddress, value: authorAddress }, authorAddress.slice(0, 6 + 6) + '...')))),
             React.createElement("div", { style: sBarItem },
                 React.createElement("i", null, "3 servers"),
                 React.createElement("button", { type: "button" }, "sync now")));
@@ -29162,9 +29213,29 @@ class LoginBarView extends React.Component {
 }
 //================================================================================
 let loginStorage = new LoginStorage();
+let demoKeypairs = [
+    {
+        address: "@abcd.Evwdch1up4ecf3bxNjaKFy9CEZpizLPreYu3J7tQELUw",
+        secret: "6qdayaEK2uiDZknVVNuz7PfcbCNaT3yDzd3b3GBw5pAo"
+    },
+    {
+        address: "@suzy.D79SNKuFsNKGhHgzGsvWG9V8JQG8MwyjSrvkjDQ2mVZD",
+        secret: "2nwvseUKu6mxSFu3YnFCdTFw5Pyud1aBW997XCVs6LDn"
+    },
+    {
+        address: "@fooo.A14CghnKZSsEiShRfgPHPQpstWsLfqFELGwinyPCPzaK",
+        secret: "HDGn792ZFeAa2HWpWRBhVGsb7uQJKwxUT4wSKvJxcgSf"
+    }
+];
+//demoKeypairs.forEach(kp => loginStorage.setAuthorKeypair(kp));
+//loginStorage.setAuthorKeypair(null);
+//loginStorage.setWorkspace('+sailing.xxxx');
+//loginStorage.setWorkspace('+gardening.xxxx');
+//loginStorage.setWorkspace('+solarpunk.xxxxxxx');
+//loginStorage.setWorkspace(null);
 ReactDOM.render(React.createElement(LoginBarView, { loginStorage: loginStorage }), document.getElementById('react-slot'));
 
-},{"./emitter":18,"./util":19,"react":10,"react-dom":7}],18:[function(require,module,exports){
+},{"./emitter":19,"./util":20,"fast-deep-equal":1,"react":11,"react-dom":8}],19:[function(require,module,exports){
 "use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -29207,7 +29278,7 @@ class Emitter {
 }
 exports.Emitter = Emitter;
 
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 "use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -29219,7 +29290,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.notNull = exports.sleep = void 0;
+exports.sorted = exports.notNull = exports.sleep = void 0;
 exports.sleep = (ms) => __awaiter(void 0, void 0, void 0, function* () {
     return new Promise((resolve, reject) => {
         setTimeout(resolve, ms);
@@ -29229,5 +29300,10 @@ exports.sleep = (ms) => __awaiter(void 0, void 0, void 0, function* () {
 // Normally you'd just use a filter() for this, but
 // Typescript doesn't understand that properly.
 exports.notNull = (items) => items.filter(t => t !== null);
+// sort the array, mutating it, and return the mutated array
+exports.sorted = (items) => {
+    items.sort();
+    return items;
+};
 
-},{}]},{},[17]);
+},{}]},{},[18]);
