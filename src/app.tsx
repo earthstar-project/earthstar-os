@@ -163,6 +163,20 @@ let sBarItem : React.CSSProperties = {
 let sBarSpacer : React.CSSProperties = {
     flexGrow: 1,
 }
+let sSelect : React.CSSProperties = {
+    width: '100%',
+    height: 40,
+    fontSize: '100%',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    borderRadius: 0,
+    backgroundColor: 'white',
+    border: 'none',
+    color: 'black',
+    appearance: 'none',
+    MozAppearance: 'none',
+    WebkitAppearance: 'none',
+}
 
 interface LoginBarProps {
     loginStorage : LoginStorage;
@@ -184,7 +198,7 @@ class LoginBarView extends React.Component<LoginBarProps, any> {
         let loginStorage = this.props.loginStorage;
         return <div style={sBar}>
             <div style={sBarItem}>
-                <select
+                <select style={sSelect}
                     value={loginStorage.workspaceAddress || 'null'}
                     onChange={(e) => loginStorage.setWorkspace(e.target.value == 'null' ? null : e.target.value)}
                     >
@@ -200,7 +214,7 @@ class LoginBarView extends React.Component<LoginBarProps, any> {
                 </select>
             </div>
             <div style={sBarItem}>
-                <select
+                <select style={sSelect}
                     value={loginStorage.authorKeypair == null ? 'null' : loginStorage.authorKeypair.address}
                     onChange={(e) => loginStorage.setAuthorAddress(e.target.value == 'null' ? null : e.target.value)}
                     >

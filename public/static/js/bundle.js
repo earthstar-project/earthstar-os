@@ -29184,6 +29184,20 @@ let sBarItem = {
 let sBarSpacer = {
     flexGrow: 1,
 };
+let sSelect = {
+    width: '100%',
+    height: 40,
+    fontSize: '100%',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    borderRadius: 0,
+    backgroundColor: 'white',
+    border: 'none',
+    color: 'black',
+    appearance: 'none',
+    MozAppearance: 'none',
+    WebkitAppearance: 'none',
+};
 class LoginBarView extends React.Component {
     constructor() {
         super(...arguments);
@@ -29206,7 +29220,7 @@ class LoginBarView extends React.Component {
         let loginStorage = this.props.loginStorage;
         return React.createElement("div", { style: sBar },
             React.createElement("div", { style: sBarItem },
-                React.createElement("select", { value: loginStorage.workspaceAddress || 'null', onChange: (e) => loginStorage.setWorkspace(e.target.value == 'null' ? null : e.target.value) },
+                React.createElement("select", { style: sSelect, value: loginStorage.workspaceAddress || 'null', onChange: (e) => loginStorage.setWorkspace(e.target.value == 'null' ? null : e.target.value) },
                     React.createElement("option", { value: "null" }, "(no workspace)"),
                     util_1.sorted(util_1.notNull(loginStorage.history.workspaceAddresses)).map(wa => {
                         let [name, key] = wa.split('.');
@@ -29217,7 +29231,7 @@ class LoginBarView extends React.Component {
                         return React.createElement("option", { key: wa, value: wa }, waShort);
                     }))),
             React.createElement("div", { style: sBarItem },
-                React.createElement("select", { value: loginStorage.authorKeypair == null ? 'null' : loginStorage.authorKeypair.address, onChange: (e) => loginStorage.setAuthorAddress(e.target.value == 'null' ? null : e.target.value) },
+                React.createElement("select", { style: sSelect, value: loginStorage.authorKeypair == null ? 'null' : loginStorage.authorKeypair.address, onChange: (e) => loginStorage.setAuthorAddress(e.target.value == 'null' ? null : e.target.value) },
                     React.createElement("option", { value: "null" }, "(no author)"),
                     util_1.sorted(util_1.notNull(loginStorage.history.authorKeypairs).map(kp => kp.address)).map(authorAddress => React.createElement("option", { key: authorAddress, value: authorAddress }, authorAddress.slice(0, 6 + 6) + '...')))),
             React.createElement("div", { style: sBarSpacer }),
@@ -29228,20 +29242,20 @@ class LoginBarView extends React.Component {
 }
 //================================================================================
 let loginStorage = new LoginStorage();
-let demoKeypairs = [
-    {
-        address: "@abcd.Evwdch1up4ecf3bxNjaKFy9CEZpizLPreYu3J7tQELUw",
-        secret: "6qdayaEK2uiDZknVVNuz7PfcbCNaT3yDzd3b3GBw5pAo"
-    },
-    {
-        address: "@suzy.D79SNKuFsNKGhHgzGsvWG9V8JQG8MwyjSrvkjDQ2mVZD",
-        secret: "2nwvseUKu6mxSFu3YnFCdTFw5Pyud1aBW997XCVs6LDn"
-    },
-    {
-        address: "@fooo.A14CghnKZSsEiShRfgPHPQpstWsLfqFELGwinyPCPzaK",
-        secret: "HDGn792ZFeAa2HWpWRBhVGsb7uQJKwxUT4wSKvJxcgSf"
-    }
-];
+//let demoKeypairs : AuthorKeypair[] = [
+//    {
+//        address: "@abcd.Evwdch1up4ecf3bxNjaKFy9CEZpizLPreYu3J7tQELUw",
+//        secret: "6qdayaEK2uiDZknVVNuz7PfcbCNaT3yDzd3b3GBw5pAo"
+//    },
+//    {
+//        address: "@suzy.D79SNKuFsNKGhHgzGsvWG9V8JQG8MwyjSrvkjDQ2mVZD",
+//        secret: "2nwvseUKu6mxSFu3YnFCdTFw5Pyud1aBW997XCVs6LDn"
+//    },
+//    {
+//        address: "@fooo.A14CghnKZSsEiShRfgPHPQpstWsLfqFELGwinyPCPzaK",
+//        secret: "HDGn792ZFeAa2HWpWRBhVGsb7uQJKwxUT4wSKvJxcgSf"
+//    }
+//]
 //demoKeypairs.forEach(kp => loginStorage.setAuthorKeypair(kp));
 //loginStorage.setAuthorKeypair(null);
 //
