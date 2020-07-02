@@ -29046,139 +29046,131 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const React = __importStar(require("react"));
 const ReactDOM = __importStar(require("react-dom"));
-const deepEqual = require("fast-deep-equal");
-const util_1 = require("./util");
-const emitter_1 = require("./emitter");
-let log = console.log;
-let getHashParams = () => {
-    if (!window.location.hash) {
-        return {};
-    }
-    let params = {};
-    let USParams = new URLSearchParams(window.location.hash.slice(1)); // remove leading '#'
-    for (let [k, v] of USParams.entries()) {
-        params[k] = v;
-    }
-    return params;
-};
-let setHashParams = (params) => {
-    let newHash = Object.entries(params)
-        .map(([k, v]) => `${k}=${v}`)
-        .join('&');
-    log('setting hash to', params);
-    log('setting hash to', newHash);
-    window.location.hash = newHash;
-};
+const router_1 = require("./router");
+const earthbar_1 = require("./earthbar");
+const debugView_1 = require("./debugView");
 //================================================================================
-let LOGIN_HISTORY_LOCALSTORAGE_KEY = 'earthstar-logins';
-// expected url hash params:
-// #workspace=gardening.xxxx
-// note we omit the plus on the workspace address, because it would have to be percent-encoded.
-// if workspace is null, it's absent from the url hash.
-class LoginStorage {
+// MAIN
+let router = new router_1.EarthstarRouter();
+let addDemoContent = (router) => {
+    let demoKeypairs = [
+        {
+            address: "@abcd.Evwdch1up4ecf3bxNjaKFy9CEZpizLPreYu3J7tQELUw",
+            secret: "6qdayaEK2uiDZknVVNuz7PfcbCNaT3yDzd3b3GBw5pAo"
+        },
+        {
+            address: "@suzy.D79SNKuFsNKGhHgzGsvWG9V8JQG8MwyjSrvkjDQ2mVZD",
+            secret: "2nwvseUKu6mxSFu3YnFCdTFw5Pyud1aBW997XCVs6LDn"
+        },
+        {
+            address: "@fooo.A14CghnKZSsEiShRfgPHPQpstWsLfqFELGwinyPCPzaK",
+            secret: "HDGn792ZFeAa2HWpWRBhVGsb7uQJKwxUT4wSKvJxcgSf"
+        }
+    ];
+    demoKeypairs.forEach(kp => router.setAuthorKeypair(kp));
+    router.setAuthorKeypair(null);
+    router.setWorkspace('+sailing.xxxxxxxxxxx');
+    router.setWorkspace('+gardening.xxxxxxxxxx');
+    router.setWorkspace('+solarpunk.xxxxxxx');
+    router.setWorkspace('+aaaaabbbbbccccc.xxxxxxx');
+    router.setWorkspace('+unlisted.xxxxxxxxxxxxxxxxxxxx');
+    router.setWorkspace('+invite.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+    router.setWorkspace('+z.z');
+    router.setWorkspace('+blip.blorp');
+    router.setWorkspace(null);
+};
+//addDemoContent(router);
+ReactDOM.render([
+    React.createElement(earthbar_1.Earthbar, { key: "earthbar", router: router }),
+    React.createElement(debugView_1.DebugView, { key: "debug", router: router }),
+], document.getElementById('react-slot'));
+
+},{"./debugView":19,"./earthbar":20,"./router":22,"react":11,"react-dom":8}],19:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.DebugView = void 0;
+const React = __importStar(require("react"));
+let logDebug = (...args) => console.log('DebugView |', ...args);
+//================================================================================
+let sPage = {
+    padding: 15,
+};
+class DebugView extends React.Component {
     constructor() {
-        this.workspaceAddress = null;
-        this.authorKeypair = null;
-        log('LoginStorage constructor');
-        this.onChange = new emitter_1.Emitter();
-        this.history = {
-            workspaceAddresses: [null],
-            authorKeypairs: [null],
-        };
-        this._loadHistoryFromLocalStorage();
-        this._loadWorkspaceAddressFromHash();
-        this._loadAuthorFromHistory();
-        window.addEventListener('hashchange', () => {
-            this._loadWorkspaceAddressFromHash();
-            this.onChange.send(undefined);
-        }, false);
+        super(...arguments);
+        this.unsub = null;
     }
-    _loadHistoryFromLocalStorage() {
-        let raw = localStorage.getItem(LOGIN_HISTORY_LOCALSTORAGE_KEY);
-        if (raw) {
-            try {
-                this.history = JSON.parse(raw);
-            }
-            catch (e) {
-            }
-        }
-        log('...history:', this.history);
+    componentDidMount() {
+        logDebug('subscribing to router changes');
+        this.unsub = this.props.router.onChange.subscribe(() => {
+            logDebug('Earthbar: router changed; re-rendering');
+            this.forceUpdate();
+        });
     }
-    _loadWorkspaceAddressFromHash() {
-        this.workspaceAddress = getHashParams().workspace || null;
-        if (this.workspaceAddress) {
-            // restore '+'
-            this.workspaceAddress = this.workspaceAddress.trim();
-            if (!this.workspaceAddress.startsWith('+')) {
-                this.workspaceAddress = '+' + this.workspaceAddress;
-            }
-            // save to front of history workspace list (as most recent)
-            this.history.workspaceAddresses = this.history.workspaceAddresses.filter(w => w !== this.workspaceAddress);
-            this.history.workspaceAddresses.unshift(this.workspaceAddress);
-            this._saveHistory();
+    componentWillUnmount() {
+        if (this.unsub) {
+            this.unsub();
         }
-        log('...loaded workspace from hash:', this.workspaceAddress);
     }
-    _loadAuthorFromHistory() {
-        if (this.history.authorKeypairs.length == 0) {
-            this.history.authorKeypairs = [null];
-        }
-        this.authorKeypair = this.history.authorKeypairs[0];
-        log('...loaded author from history: ', this.authorKeypair);
-    }
-    _saveHistory() {
-        log('        saving history');
-        localStorage.setItem(LOGIN_HISTORY_LOCALSTORAGE_KEY, JSON.stringify(this.history));
-    }
-    setWorkspace(workspaceAddress) {
-        log('setWorkspace(' + workspaceAddress + ')');
-        this.workspaceAddress = workspaceAddress;
-        // update history to move workspace to the beginning of the list (most recent)
-        log('...updating history');
-        this.history.workspaceAddresses = this.history.workspaceAddresses.filter(w => w !== workspaceAddress);
-        this.history.workspaceAddresses.unshift(workspaceAddress);
-        this._saveHistory();
-        // update hash params.
-        if (workspaceAddress === null) {
-            log('...removing workspace from hash params');
-            let params = getHashParams();
-            delete params.workspace;
-            setHashParams(params);
-        }
-        else {
-            log('...updating workspace in hash params');
-            let params = getHashParams();
-            params.workspace = workspaceAddress.slice(1); // remove '+'
-            setHashParams(params);
-        }
-        this.onChange.send(undefined);
-    }
-    setAuthorAddress(authorAddress) {
-        // a helper for when you only know the address, not the whole keypair
-        if (authorAddress === null) {
-            this.setAuthorKeypair(null);
-            return;
-        }
-        for (let kp of this.history.authorKeypairs) {
-            if (kp !== null && kp.address === authorAddress) {
-                this.setAuthorKeypair(kp);
-                return;
-            }
-        }
-        console.warn('setAuthorAddress: could not find keypair with address = ', JSON.stringify(authorAddress));
-    }
-    setAuthorKeypair(authorKeypair) {
-        log('setAuthorKeypair:', authorKeypair);
-        this.authorKeypair = authorKeypair;
-        // update history to move author to the beginning of the list (most recent)
-        // note that the authorKeypair list includes a null representing guest mode
-        log('...updating history');
-        this.history.authorKeypairs = this.history.authorKeypairs.filter(a => !deepEqual(a, authorKeypair));
-        this.history.authorKeypairs.unshift(authorKeypair);
-        this._saveHistory();
-        this.onChange.send(undefined);
+    render() {
+        logDebug('render');
+        let router = this.props.router;
+        return React.createElement("div", { style: sPage },
+            React.createElement("h3", null, "params"),
+            React.createElement("pre", null, JSON.stringify(router.params, null, 4)),
+            React.createElement("h3", null, "workspace"),
+            React.createElement("code", null, router.workspaceAddress || 'null'),
+            React.createElement("h3", null, "author"),
+            React.createElement("pre", null, JSON.stringify(router.authorKeypair, null, 4)));
     }
 }
+exports.DebugView = DebugView;
+
+},{"react":11}],20:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Earthbar = void 0;
+const React = __importStar(require("react"));
+const util_1 = require("./util");
+let logEarthbar = (...args) => console.log('Earthbar |', ...args);
 //================================================================================
 let sBar = {
     display: 'flex',
@@ -29210,15 +29202,15 @@ let sSelect = {
     MozAppearance: 'none',
     WebkitAppearance: 'none',
 };
-class LoginBarView extends React.Component {
+class Earthbar extends React.Component {
     constructor() {
         super(...arguments);
         this.unsub = null;
     }
     componentDidMount() {
-        log('LoginBarView: subscribing to loginStorage changes');
-        this.unsub = this.props.loginStorage.onChange.subscribe(() => {
-            log('LoginBarView: loginStorage changed; re-rendering');
+        logEarthbar('subscribing to router changes');
+        this.unsub = this.props.router.onChange.subscribe(() => {
+            logEarthbar('Earthbar: router changed; re-rendering');
             this.forceUpdate();
         });
     }
@@ -29228,13 +29220,13 @@ class LoginBarView extends React.Component {
         }
     }
     render() {
-        log('LoginBarView: render');
-        let loginStorage = this.props.loginStorage;
+        logEarthbar('render');
+        let router = this.props.router;
         return React.createElement("div", { style: sBar },
             React.createElement("div", { style: sBarItem },
-                React.createElement("select", { style: sSelect, value: loginStorage.workspaceAddress || 'null', onChange: (e) => loginStorage.setWorkspace(e.target.value == 'null' ? null : e.target.value) },
+                React.createElement("select", { style: sSelect, value: router.workspaceAddress || 'null', onChange: (e) => router.setWorkspace(e.target.value == 'null' ? null : e.target.value) },
                     React.createElement("option", { value: "null" }, "(no workspace)"),
-                    util_1.sorted(util_1.notNull(loginStorage.history.workspaceAddresses)).map(wa => {
+                    util_1.sorted(util_1.notNull(router.history.workspaceAddresses)).map(wa => {
                         let [name, key] = wa.split('.');
                         let waShort = wa;
                         if (key.length > 6) {
@@ -29243,46 +29235,18 @@ class LoginBarView extends React.Component {
                         return React.createElement("option", { key: wa, value: wa }, waShort);
                     }))),
             React.createElement("div", { style: sBarItem },
-                React.createElement("select", { style: sSelect, value: loginStorage.authorKeypair == null ? 'null' : loginStorage.authorKeypair.address, onChange: (e) => loginStorage.setAuthorAddress(e.target.value == 'null' ? null : e.target.value) },
+                React.createElement("select", { style: sSelect, value: router.authorKeypair == null ? 'null' : router.authorKeypair.address, onChange: (e) => router.setAuthorAddress(e.target.value == 'null' ? null : e.target.value) },
                     React.createElement("option", { value: "null" }, "(no author)"),
-                    util_1.sorted(util_1.notNull(loginStorage.history.authorKeypairs).map(kp => kp.address)).map(authorAddress => React.createElement("option", { key: authorAddress, value: authorAddress }, authorAddress.slice(0, 6 + 6) + '...')))),
+                    util_1.sorted(util_1.notNull(router.history.authorKeypairs).map(kp => kp.address)).map(authorAddress => React.createElement("option", { key: authorAddress, value: authorAddress }, authorAddress.slice(0, 6 + 6) + '...')))),
             React.createElement("div", { style: sBarSpacer }),
             React.createElement("div", { style: sBarItem },
                 React.createElement("i", null, "3 servers"),
                 React.createElement("button", { type: "button" }, "sync now")));
     }
 }
-//================================================================================
-let loginStorage = new LoginStorage();
-//let demoKeypairs : AuthorKeypair[] = [
-//    {
-//        address: "@abcd.Evwdch1up4ecf3bxNjaKFy9CEZpizLPreYu3J7tQELUw",
-//        secret: "6qdayaEK2uiDZknVVNuz7PfcbCNaT3yDzd3b3GBw5pAo"
-//    },
-//    {
-//        address: "@suzy.D79SNKuFsNKGhHgzGsvWG9V8JQG8MwyjSrvkjDQ2mVZD",
-//        secret: "2nwvseUKu6mxSFu3YnFCdTFw5Pyud1aBW997XCVs6LDn"
-//    },
-//    {
-//        address: "@fooo.A14CghnKZSsEiShRfgPHPQpstWsLfqFELGwinyPCPzaK",
-//        secret: "HDGn792ZFeAa2HWpWRBhVGsb7uQJKwxUT4wSKvJxcgSf"
-//    }
-//]
-//demoKeypairs.forEach(kp => loginStorage.setAuthorKeypair(kp));
-//loginStorage.setAuthorKeypair(null);
-//
-//loginStorage.setWorkspace('+sailing.xxxxxxxxxxx');
-//loginStorage.setWorkspace('+gardening.xxxxxxxxxx');
-//loginStorage.setWorkspace('+solarpunk.xxxxxxx');
-//loginStorage.setWorkspace('+aaaaabbbbbccccc.xxxxxxx');
-//loginStorage.setWorkspace('+unlisted.xxxxxxxxxxxxxxxxxxxx');
-//loginStorage.setWorkspace('+invite.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
-//loginStorage.setWorkspace('+z.z');
-//loginStorage.setWorkspace('+blip.blorp');
-//loginStorage.setWorkspace(null);
-ReactDOM.render(React.createElement(LoginBarView, { loginStorage: loginStorage }), document.getElementById('react-slot'));
+exports.Earthbar = Earthbar;
 
-},{"./emitter":19,"./util":20,"fast-deep-equal":1,"react":11,"react-dom":8}],19:[function(require,module,exports){
+},{"./util":23,"react":11}],21:[function(require,module,exports){
 "use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -29325,7 +29289,159 @@ class Emitter {
 }
 exports.Emitter = Emitter;
 
-},{}],20:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.EarthstarRouter = void 0;
+const deepEqual = require("fast-deep-equal");
+const emitter_1 = require("./emitter");
+let logRouter = (...args) => console.log('Router |', ...args);
+let getHashParams = () => {
+    if (!window.location.hash) {
+        return {};
+    }
+    let params = {};
+    let USParams = new URLSearchParams(window.location.hash.slice(1)); // remove leading '#'
+    for (let [k, v] of USParams.entries()) {
+        params[k] = v;
+    }
+    return params;
+};
+let setHashParams = (params) => {
+    let newHash = Object.entries(params)
+        .map(([k, v]) => `${k}=${v}`)
+        .join('&');
+    logRouter('setting hash to', params);
+    logRouter('setting hash to', newHash);
+    window.location.hash = newHash;
+};
+//================================================================================
+let LOGIN_HISTORY_LOCALSTORAGE_KEY = 'earthstar-logins';
+// expected url hash params:
+// #workspace=gardening.xxxx
+// note we omit the plus on the workspace address because it would have to be percent-encoded.
+// if workspace is null, it's absent from the url hash.
+class EarthstarRouter {
+    constructor() {
+        this.workspaceAddress = null;
+        this.authorKeypair = null;
+        logRouter('constructor');
+        this.onChange = new emitter_1.Emitter();
+        this.params = getHashParams();
+        window.addEventListener('hashchange', () => {
+            this._handleHashChange();
+        }, false);
+        this.history = {
+            workspaceAddresses: [null],
+            authorKeypairs: [null],
+        };
+        this._loadHistoryFromLocalStorage();
+        this._loadWorkspaceAddressFromHash();
+        this._loadAuthorFromHistory();
+    }
+    _handleHashChange() {
+        logRouter('_handleHashChange');
+        let newParams = getHashParams();
+        if (this.params.workspace !== newParams.workspace) {
+            logRouter('...workspace changed');
+            this._loadWorkspaceAddressFromHash();
+        }
+        if (!deepEqual(newParams, this.params)) {
+            logRouter('...anything changed; sending onChange');
+            this.params = newParams;
+            this.onChange.send(undefined);
+        }
+    }
+    _loadHistoryFromLocalStorage() {
+        let raw = localStorage.getItem(LOGIN_HISTORY_LOCALSTORAGE_KEY);
+        if (raw) {
+            try {
+                this.history = JSON.parse(raw);
+            }
+            catch (e) {
+            }
+        }
+        logRouter('...history:', this.history);
+    }
+    _loadWorkspaceAddressFromHash() {
+        logRouter('_loadWorkspaceAddressFromHash');
+        this.workspaceAddress = getHashParams().workspace || null;
+        if (this.workspaceAddress) {
+            // restore '+'
+            this.workspaceAddress = this.workspaceAddress.trim();
+            if (!this.workspaceAddress.startsWith('+')) {
+                this.workspaceAddress = '+' + this.workspaceAddress;
+            }
+            // save to front of history workspace list (as most recent)
+            this.history.workspaceAddresses = this.history.workspaceAddresses.filter(w => w !== this.workspaceAddress);
+            this.history.workspaceAddresses.unshift(this.workspaceAddress);
+            this._saveHistory();
+        }
+        logRouter('...loaded workspace from hash:', this.workspaceAddress);
+    }
+    _loadAuthorFromHistory() {
+        if (this.history.authorKeypairs.length == 0) {
+            this.history.authorKeypairs = [null];
+        }
+        this.authorKeypair = this.history.authorKeypairs[0];
+        logRouter('...loaded author from history: ', this.authorKeypair);
+    }
+    _saveHistory() {
+        logRouter('        saving history');
+        localStorage.setItem(LOGIN_HISTORY_LOCALSTORAGE_KEY, JSON.stringify(this.history));
+    }
+    setWorkspace(workspaceAddress) {
+        logRouter('setWorkspace(' + workspaceAddress + ')');
+        this.workspaceAddress = workspaceAddress;
+        // update history to move workspace to the beginning of the list (most recent)
+        logRouter('...updating history');
+        this.history.workspaceAddresses = this.history.workspaceAddresses.filter(w => w !== workspaceAddress);
+        this.history.workspaceAddresses.unshift(workspaceAddress);
+        this._saveHistory();
+        // update hash params.
+        if (workspaceAddress === null) {
+            logRouter('...removing workspace from hash params');
+            let params = getHashParams();
+            delete params.workspace;
+            setHashParams(params);
+        }
+        else {
+            logRouter('...updating workspace in hash params');
+            let params = getHashParams();
+            params.workspace = workspaceAddress.slice(1); // remove '+'
+            setHashParams(params);
+        }
+        this.onChange.send(undefined);
+    }
+    setAuthorAddress(authorAddress) {
+        // a helper for when you only know the address, not the whole keypair
+        if (authorAddress === null) {
+            this.setAuthorKeypair(null);
+            return;
+        }
+        for (let kp of this.history.authorKeypairs) {
+            if (kp !== null && kp.address === authorAddress) {
+                this.setAuthorKeypair(kp);
+                return;
+            }
+        }
+        console.warn('setAuthorAddress: could not find keypair with address = ', JSON.stringify(authorAddress));
+    }
+    setAuthorKeypair(authorKeypair) {
+        logRouter('setAuthorKeypair:', authorKeypair);
+        this.authorKeypair = authorKeypair;
+        // update history to move author to the beginning of the list (most recent)
+        // note that the authorKeypair list includes a null representing guest mode
+        logRouter('...updating history');
+        this.history.authorKeypairs = this.history.authorKeypairs.filter(a => !deepEqual(a, authorKeypair));
+        this.history.authorKeypairs.unshift(authorKeypair);
+        this._saveHistory();
+        this.onChange.send(undefined);
+    }
+}
+exports.EarthstarRouter = EarthstarRouter;
+
+},{"./emitter":21,"fast-deep-equal":1}],23:[function(require,module,exports){
 "use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
