@@ -29077,13 +29077,23 @@ let LOGIN_HISTORY_LOCALSTORAGE_KEY = 'earthstar-logins';
 // if workspace is null, it's absent from the url hash.
 class LoginStorage {
     constructor() {
+        this.workspaceAddress = null;
+        this.authorKeypair = null;
         log('LoginStorage constructor');
         this.onChange = new emitter_1.Emitter();
         this.history = {
             workspaceAddresses: [null],
             authorKeypairs: [null],
         };
-        // load history from localStorage
+        this._loadHistoryFromLocalStorage();
+        this._loadWorkspaceAddressFromHash();
+        this._loadAuthorFromHistory();
+        window.addEventListener('hashchange', () => {
+            this._loadWorkspaceAddressFromHash();
+            this.onChange.send(undefined);
+        }, false);
+    }
+    _loadHistoryFromLocalStorage() {
         let raw = localStorage.getItem(LOGIN_HISTORY_LOCALSTORAGE_KEY);
         if (raw) {
             try {
@@ -29093,7 +29103,8 @@ class LoginStorage {
             }
         }
         log('...history:', this.history);
-        // load workspaceAddress from hash params
+    }
+    _loadWorkspaceAddressFromHash() {
         this.workspaceAddress = getHashParams().workspace || null;
         if (this.workspaceAddress) {
             // restore '+'
@@ -29107,7 +29118,8 @@ class LoginStorage {
             this._saveHistory();
         }
         log('...loaded workspace from hash:', this.workspaceAddress);
-        // load latest author from history
+    }
+    _loadAuthorFromHistory() {
         if (this.history.authorKeypairs.length == 0) {
             this.history.authorKeypairs = [null];
         }

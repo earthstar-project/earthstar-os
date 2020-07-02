@@ -47,19 +47,29 @@ type LoginHistory = {
 // note we omit the plus on the workspace address, because it would have to be percent-encoded.
 // if workspace is null, it's absent from the url hash.
 class LoginStorage {
-    workspaceAddress : WorkspaceAddress | null;
-    authorKeypair : AuthorKeypair | null;
+    workspaceAddress : WorkspaceAddress | null = null;
+    authorKeypair : AuthorKeypair | null = null;
     history : LoginHistory;
     onChange : Emitter<undefined>;
     constructor() {
         log('LoginStorage constructor');
         this.onChange = new Emitter<undefined>();
+
         this.history = {
             workspaceAddresses: [null],
             authorKeypairs: [null],
         }
+        this._loadHistoryFromLocalStorage();
 
-        // load history from localStorage
+        this._loadWorkspaceAddressFromHash();
+        this._loadAuthorFromHistory();
+
+        window.addEventListener('hashchange', () => {
+            this._loadWorkspaceAddressFromHash();
+            this.onChange.send(undefined);
+        }, false);
+    }
+    _loadHistoryFromLocalStorage() {
         let raw = localStorage.getItem(LOGIN_HISTORY_LOCALSTORAGE_KEY);
         if (raw) {
             try {
@@ -68,8 +78,8 @@ class LoginStorage {
             }
         }
         log('...history:', this.history);
-
-        // load workspaceAddress from hash params
+    }
+    _loadWorkspaceAddressFromHash() {
         this.workspaceAddress = getHashParams().workspace || null;
         if (this.workspaceAddress) {
             // restore '+'
@@ -81,9 +91,8 @@ class LoginStorage {
             this._saveHistory();
         }
         log('...loaded workspace from hash:', this.workspaceAddress);
-
-
-        // load latest author from history
+    }
+    _loadAuthorFromHistory() {
         if (this.history.authorKeypairs.length == 0) {
             this.history.authorKeypairs = [null];
         }
