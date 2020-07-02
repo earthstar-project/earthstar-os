@@ -28998,7 +28998,184 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const React = __importStar(require("react"));
 const ReactDOM = __importStar(require("react-dom"));
-const AppView = (props) => React.createElement("h1", null, "Hello");
-ReactDOM.render(React.createElement(AppView, null), document.getElementById('react-slot'));
+const emitter_1 = require("./emitter");
+let log = console.log;
+let getHashParams = () => {
+    if (!window.location.hash) {
+        return {};
+    }
+    let params = {};
+    let USParams = new URLSearchParams(window.location.hash.slice(1)); // remove leading '#'
+    for (let [k, v] of USParams.entries()) {
+        params[k] = v;
+    }
+    return params;
+};
+let setHashParams = (params) => {
+    let newHash = Object.entries(params)
+        .map(([k, v]) => `${k}=${v}`)
+        .join('&');
+    log('setting hash to', params);
+    log('setting hash to', newHash);
+    window.location.hash = newHash;
+};
+//================================================================================
+let LOGINS_LOCALSTORAGE_KEY = 'earthstar-logins';
+// expected url hash params:
+// #workspace=gardening.xxxx
+// note no plus on the workspace address, because it has to be percent-encoded.
+// if workspace is null, it's absent from the url hash.
+class LoginStorage {
+    constructor() {
+        log('LoginStorage constructor');
+        this.onChange = new emitter_1.Emitter();
+        this._logins = {};
+        // load _logins from localStorage
+        let raw = localStorage.getItem(LOGINS_LOCALSTORAGE_KEY);
+        if (raw) {
+            try {
+                this._logins = JSON.parse(raw);
+            }
+            catch (e) {
+            }
+        }
+        log('..._logins:', this._logins);
+        // load workspaceAddress from hash params
+        this.workspaceAddress = getHashParams().workspace || null;
+        if (this.workspaceAddress) {
+            // restore '+'
+            this.workspaceAddress = this.workspaceAddress.trim();
+            if (!this.workspaceAddress.startsWith('+')) {
+                this.workspaceAddress = '+' + this.workspaceAddress;
+            }
+        }
+        log('...loaded workspace from hash:', this.workspaceAddress);
+        if (this.workspaceAddress === null) {
+            this.authorKeypair = null;
+        }
+        else {
+            // load latest author from _logins for this workspace
+            let authorsForThisWorkspace = this._logins[this.workspaceAddress] || [];
+            this.authorKeypair = authorsForThisWorkspace[0] || null;
+            // add this workspace to _logins if it's not there
+            if (this._logins[this.workspaceAddress] === undefined) {
+                log('...this is a new workspace; saving it to logins with a null author');
+                this._logins[this.workspaceAddress] = [null];
+                this._saveLogins();
+            }
+        }
+        log('...loaded author from _logins:', this.authorKeypair);
+    }
+    _saveLogins() {
+        log('    saving _logins');
+        localStorage.setItem(LOGINS_LOCALSTORAGE_KEY, JSON.stringify(this._logins));
+    }
+    setWorkspaceAndAuthor(workspaceAddress, authorKeypair) {
+        log('set workspace to ' + workspaceAddress + ' and author to ' + ((authorKeypair === null || authorKeypair === void 0 ? void 0 : authorKeypair.address) || 'null'));
+        if (workspaceAddress === null && authorKeypair !== null) {
+            throw new Error("null workspace must have null author");
+        }
+        this.workspaceAddress = workspaceAddress;
+        this.authorKeypair = authorKeypair;
+        if (workspaceAddress === null) {
+            // don't need to update _logins.
+            // update hash params.
+            log('...removing workspace from hash params');
+            let params = getHashParams();
+            delete params.workspace;
+            setHashParams(params);
+        }
+        else {
+            // update _logins to move author to the beginning of the authors list
+            log('...setting author as most recent author for this workspace');
+            this._logins[workspaceAddress] = (this._logins[workspaceAddress] || []).filter(a => a !== authorKeypair);
+            this._logins[workspaceAddress].unshift(authorKeypair);
+            this._saveLogins();
+            // update hash params
+            log('...setting workspace in hash params');
+            let params = getHashParams();
+            params.workspace = workspaceAddress.slice(1); // remove '+'
+            setHashParams(params);
+        }
+        this.onChange.send(undefined);
+    }
+}
+//================================================================================
+let sBar = {
+    display: 'flex',
+    padding: 10,
+    borderBottom: '2px solid #5e4d76',
+};
+let sBarItem = {
+    flexGrow: 1,
+    flexShrink: 1,
+};
+const LoginBarView = (props) => {
+    var _a;
+    let wsAddress = props.loginStorage.workspaceAddress;
+    let authorAddress = (_a = props.loginStorage.authorKeypair) === null || _a === void 0 ? void 0 : _a.address;
+    return React.createElement("div", { style: sBar },
+        wsAddress
+            ? React.createElement("div", { style: sBarItem },
+                React.createElement("b", null, wsAddress))
+            : React.createElement("div", { style: sBarItem },
+                React.createElement("a", { href: "" }, "choose a workspace")),
+        authorAddress
+            ? React.createElement("div", { style: sBarItem },
+                React.createElement("b", null, authorAddress))
+            : React.createElement("div", { style: sBarItem },
+                "guest mode. ",
+                React.createElement("a", { href: "" }, "log in")),
+        React.createElement("div", { style: sBarItem },
+            React.createElement("a", { href: "/apps" }, "apps")),
+        React.createElement("div", { style: sBarItem },
+            React.createElement("i", null, "syncing with 3 servers")));
+};
+//================================================================================
+let loginStorage = new LoginStorage();
+ReactDOM.render(React.createElement(LoginBarView, { loginStorage: loginStorage }), document.getElementById('react-slot'));
 
-},{"react":10,"react-dom":7}]},{},[17]);
+},{"./emitter":18,"react":10,"react-dom":7}],18:[function(require,module,exports){
+"use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Emitter = void 0;
+class Emitter {
+    constructor() {
+        // Allow subscribing to an event using callbacks.
+        // T is the type of event that will be emitted.
+        // If the callbacks return promises (are async callbacks),
+        // then we will await them here.  In other words, only one
+        // callback will run at a time, assuming the event is
+        // sent with "await send(...)" and not just "send(...)".
+        this._callbacks = [];
+    }
+    subscribe(cb) {
+        this._callbacks.push(cb);
+        // return an unsubscribe function
+        return () => {
+            this._callbacks = this._callbacks.filter(c => c !== cb);
+        };
+    }
+    send(t) {
+        return __awaiter(this, void 0, void 0, function* () {
+            for (let cb of this._callbacks) {
+                let result = cb(t);
+                if (result instanceof Promise) {
+                    yield result;
+                }
+            }
+        });
+    }
+}
+exports.Emitter = Emitter;
+
+},{}]},{},[17]);
