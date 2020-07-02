@@ -149,14 +149,20 @@ class LoginStorage {
 
 let sBar : React.CSSProperties = {
     display: 'flex',
-    padding: 10,
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    paddingTop: 15,
+    paddingLeft: 15,
     borderBottom: '2px solid #5e4d76',
 }
 let sBarItem : React.CSSProperties = {
-    flexGrow: 1,
     flexShrink: 1,
+    paddingBottom: 15,
+    paddingRight: 15,
 }
-
+let sBarSpacer : React.CSSProperties = {
+    flexGrow: 1,
+}
 
 interface LoginBarProps {
     loginStorage : LoginStorage;
@@ -183,9 +189,14 @@ class LoginBarView extends React.Component<LoginBarProps, any> {
                     onChange={(e) => loginStorage.setWorkspace(e.target.value == 'null' ? null : e.target.value)}
                     >
                     <option value="null">(no workspace)</option>
-                    {sorted(notNull(loginStorage.history.workspaceAddresses)).map(wa =>
-                        <option key={wa} value={wa}>{wa}</option>
-                    )}
+                    {sorted(notNull(loginStorage.history.workspaceAddresses)).map(wa => {
+                        let [name, key] = wa.split('.');
+                        let waShort = wa;
+                        if (key.length > 6) {
+                            waShort = name + '.' + key.slice(0, 6) + '...';
+                        }
+                        return <option key={wa} value={wa}>{waShort}</option>
+                    })}
                 </select>
             </div>
             <div style={sBarItem}>
@@ -199,6 +210,7 @@ class LoginBarView extends React.Component<LoginBarProps, any> {
                     )}
                 </select>
             </div>
+            <div style={sBarSpacer}/>
             <div style={sBarItem}>
                 <i>3 servers</i>
                 <button type="button">sync now</button>
@@ -211,26 +223,31 @@ class LoginBarView extends React.Component<LoginBarProps, any> {
 
 let loginStorage = new LoginStorage();
 
-let demoKeypairs : AuthorKeypair[] = [
-    {
-        address: "@abcd.Evwdch1up4ecf3bxNjaKFy9CEZpizLPreYu3J7tQELUw",
-        secret: "6qdayaEK2uiDZknVVNuz7PfcbCNaT3yDzd3b3GBw5pAo"
-    },
-    {
-        address: "@suzy.D79SNKuFsNKGhHgzGsvWG9V8JQG8MwyjSrvkjDQ2mVZD",
-        secret: "2nwvseUKu6mxSFu3YnFCdTFw5Pyud1aBW997XCVs6LDn"
-    },
-    {
-        address: "@fooo.A14CghnKZSsEiShRfgPHPQpstWsLfqFELGwinyPCPzaK",
-        secret: "HDGn792ZFeAa2HWpWRBhVGsb7uQJKwxUT4wSKvJxcgSf"
-    }
-]
+//let demoKeypairs : AuthorKeypair[] = [
+//    {
+//        address: "@abcd.Evwdch1up4ecf3bxNjaKFy9CEZpizLPreYu3J7tQELUw",
+//        secret: "6qdayaEK2uiDZknVVNuz7PfcbCNaT3yDzd3b3GBw5pAo"
+//    },
+//    {
+//        address: "@suzy.D79SNKuFsNKGhHgzGsvWG9V8JQG8MwyjSrvkjDQ2mVZD",
+//        secret: "2nwvseUKu6mxSFu3YnFCdTFw5Pyud1aBW997XCVs6LDn"
+//    },
+//    {
+//        address: "@fooo.A14CghnKZSsEiShRfgPHPQpstWsLfqFELGwinyPCPzaK",
+//        secret: "HDGn792ZFeAa2HWpWRBhVGsb7uQJKwxUT4wSKvJxcgSf"
+//    }
+//]
 //demoKeypairs.forEach(kp => loginStorage.setAuthorKeypair(kp));
 //loginStorage.setAuthorKeypair(null);
-
-//loginStorage.setWorkspace('+sailing.xxxx');
-//loginStorage.setWorkspace('+gardening.xxxx');
+//
+//loginStorage.setWorkspace('+sailing.xxxxxxxxxxx');
+//loginStorage.setWorkspace('+gardening.xxxxxxxxxx');
 //loginStorage.setWorkspace('+solarpunk.xxxxxxx');
+//loginStorage.setWorkspace('+aaaaabbbbbccccc.xxxxxxx');
+//loginStorage.setWorkspace('+unlisted.xxxxxxxxxxxxxxxxxxxx');
+//loginStorage.setWorkspace('+invite.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+//loginStorage.setWorkspace('+z.z');
+//loginStorage.setWorkspace('+blip.blorp');
 //loginStorage.setWorkspace(null);
 
 ReactDOM.render(

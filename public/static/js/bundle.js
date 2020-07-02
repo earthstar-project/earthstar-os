@@ -29170,12 +29170,19 @@ class LoginStorage {
 //================================================================================
 let sBar = {
     display: 'flex',
-    padding: 10,
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    paddingTop: 15,
+    paddingLeft: 15,
     borderBottom: '2px solid #5e4d76',
 };
 let sBarItem = {
-    flexGrow: 1,
     flexShrink: 1,
+    paddingBottom: 15,
+    paddingRight: 15,
+};
+let sBarSpacer = {
+    flexGrow: 1,
 };
 class LoginBarView extends React.Component {
     constructor() {
@@ -29201,11 +29208,19 @@ class LoginBarView extends React.Component {
             React.createElement("div", { style: sBarItem },
                 React.createElement("select", { value: loginStorage.workspaceAddress || 'null', onChange: (e) => loginStorage.setWorkspace(e.target.value == 'null' ? null : e.target.value) },
                     React.createElement("option", { value: "null" }, "(no workspace)"),
-                    util_1.sorted(util_1.notNull(loginStorage.history.workspaceAddresses)).map(wa => React.createElement("option", { key: wa, value: wa }, wa)))),
+                    util_1.sorted(util_1.notNull(loginStorage.history.workspaceAddresses)).map(wa => {
+                        let [name, key] = wa.split('.');
+                        let waShort = wa;
+                        if (key.length > 6) {
+                            waShort = name + '.' + key.slice(0, 6) + '...';
+                        }
+                        return React.createElement("option", { key: wa, value: wa }, waShort);
+                    }))),
             React.createElement("div", { style: sBarItem },
                 React.createElement("select", { value: loginStorage.authorKeypair == null ? 'null' : loginStorage.authorKeypair.address, onChange: (e) => loginStorage.setAuthorAddress(e.target.value == 'null' ? null : e.target.value) },
                     React.createElement("option", { value: "null" }, "(no author)"),
                     util_1.sorted(util_1.notNull(loginStorage.history.authorKeypairs).map(kp => kp.address)).map(authorAddress => React.createElement("option", { key: authorAddress, value: authorAddress }, authorAddress.slice(0, 6 + 6) + '...')))),
+            React.createElement("div", { style: sBarSpacer }),
             React.createElement("div", { style: sBarItem },
                 React.createElement("i", null, "3 servers"),
                 React.createElement("button", { type: "button" }, "sync now")));
@@ -29229,9 +29244,15 @@ let demoKeypairs = [
 ];
 //demoKeypairs.forEach(kp => loginStorage.setAuthorKeypair(kp));
 //loginStorage.setAuthorKeypair(null);
-//loginStorage.setWorkspace('+sailing.xxxx');
-//loginStorage.setWorkspace('+gardening.xxxx');
+//
+//loginStorage.setWorkspace('+sailing.xxxxxxxxxxx');
+//loginStorage.setWorkspace('+gardening.xxxxxxxxxx');
 //loginStorage.setWorkspace('+solarpunk.xxxxxxx');
+//loginStorage.setWorkspace('+aaaaabbbbbccccc.xxxxxxx');
+//loginStorage.setWorkspace('+unlisted.xxxxxxxxxxxxxxxxxxxx');
+//loginStorage.setWorkspace('+invite.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+//loginStorage.setWorkspace('+z.z');
+//loginStorage.setWorkspace('+blip.blorp');
 //loginStorage.setWorkspace(null);
 ReactDOM.render(React.createElement(LoginBarView, { loginStorage: loginStorage }), document.getElementById('react-slot'));
 
