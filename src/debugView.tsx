@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
     Document
 } from 'earthstar'
+import throttle = require('lodash.throttle');
 
 import { Thunk } from './types';
 import { EarthstarRouter } from './router';
@@ -27,9 +28,11 @@ export class DebugView extends React.Component<DebugViewProps, any> {
     unsub : Thunk | null = null;
     componentDidMount() {
         logDebug('subscribing to router changes');
+        let throttledUpdate = throttle(() => this.forceUpdate(), 100);
         this.unsub = this.props.router.onChange.subscribe(() => {
             logDebug('Earthbar: router changed; re-rendering');
-            this.forceUpdate();
+            //this.forceUpdate();
+            throttledUpdate();
         });
     }
     componentWillUnmount() {

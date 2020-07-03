@@ -1,4 +1,5 @@
 import deepEqual = require('fast-deep-equal');
+import debounce = require('lodash.debounce');
 import {
     WorkspaceAddress,
     AuthorKeypair,
@@ -61,7 +62,7 @@ export class EarthstarRouter {
         logRouter('constructor');
         this.onChange = new Emitter<undefined>();
         this.params = getHashParams();
-        window.addEventListener('hashchange', () => {
+        window.addEventListener('hashchange', () => {   // TEMP HACK
             this._handleHashChange();
         }, false);
 
@@ -85,13 +86,29 @@ export class EarthstarRouter {
         if (this.workspaceAddress === null) {
             this.workspace = null;
         } else {
-            this.workspace = new Workspace(
-                new StorageMemory([ValidatorEs3], this.workspaceAddress),
-                this.authorKeypair
-            );
-            // TEMP HACK until router remembers pubs in localStorage
+            let validator = ValidatorEs3;
+            let storage = new StorageMemory([ValidatorEs3], this.workspaceAddress);
+            this.workspace = new Workspace(storage, this.authorKeypair);
+
+            // HACK until router remembers pubs in localStorage - add some demo pubs
             this.workspace.syncer.addPub('http://localhost:3333');
             this.workspace.syncer.addPub('https://cinnamon-bun-earthstar-pub3.glitch.me/');
+
+            // HACK to persist the memory storage to localStorage
+            let localStorageKey = `earthstar-${validator.format}-${this.workspaceAddress}`;
+            let existingData = localStorage.getItem(localStorageKey);
+            if (existingData !== null) {
+                storage._docs = JSON.parse(existingData);
+            }
+            // saving will get triggered on every incoming document, so we should debounce it
+            // (wait until no changes for X milliseconds, then save)
+            let saveToLocalStorage = () => {
+                logRouter('saving StorageMemory to localStorage =====================================');
+                localStorage.setItem(localStorageKey, JSON.stringify(storage._docs));
+            };
+            let debouncedSave = debounce(saveToLocalStorage, 100, { trailing: true });
+            storage.onChange.subscribe(debouncedSave);
+            // END LOCALSTORAGE HACK
 
             // pipe workspace's change events through to the router's change events
             this.unsubWorkspaceStorage = this.workspace.storage.onChange.subscribe(() => this.onChange.send(undefined));
@@ -165,15 +182,12 @@ export class EarthstarRouter {
         // update hash params.
         if (workspaceAddress === null) {
             logRouter('...removing workspace from hash params');
-            let params = getHashParams();
-            delete params.workspace;
-            setHashParams(params);
+            delete this.params.workspace;
         } else {
             logRouter('...updating workspace in hash params');
-            let params = getHashParams();
-            params.workspace = workspaceAddress.slice(1);  // remove '+'
-            setHashParams(params);
+            this.params.workspace = workspaceAddress.slice(1);  // remove '+'
         }
+        setHashParams(this.params);
         this.onChange.send(undefined);
     }
     setAuthorAddress(authorAddress : AuthorAddress | null) {
