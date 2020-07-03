@@ -68052,7 +68052,7 @@ let logEarthbar = (...args) => console.log('Earthbar |', ...args);
 let cEggplant = '#5e4d76';
 let cWhite = '#fff';
 let cBlack = '#222';
-let cFaintOpacity = 0.6;
+let cFaintOpacity = 0.65;
 let cBarText = cBlack;
 let cBarBackground = cWhite;
 let cBarBorder = cEggplant;
@@ -68077,6 +68077,9 @@ let sBarItem = {
 let sBarSpacer = {
     flexGrow: 1,
     background: '#eee',
+};
+let sLogo = {
+    height: '2.6em',
 };
 let sSelect = {
     width: '100%',
@@ -68136,6 +68139,8 @@ class Earthbar extends React.Component {
             syncButtonText = 'Syncing';
         }
         return React.createElement("div", { style: sBar },
+            React.createElement("div", { style: sBarItem },
+                React.createElement("img", { style: sLogo, src: 'static/img/earthstar-logo-small.png' })),
             React.createElement("div", { style: sBarItem },
                 React.createElement("label", null,
                     React.createElement("span", { style: { opacity: cFaintOpacity } }, "workspace"),

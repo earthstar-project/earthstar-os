@@ -13,7 +13,7 @@ let logEarthbar = (...args : any[]) => console.log('Earthbar |', ...args);
 let cEggplant = '#5e4d76';
 let cWhite = '#fff';
 let cBlack = '#222';
-let cFaintOpacity = 0.6;
+let cFaintOpacity = 0.65;
 
 let cBarText = cBlack;
 let cBarBackground = cWhite;
@@ -40,6 +40,9 @@ let sBarItem : React.CSSProperties = {
 let sBarSpacer : React.CSSProperties = {
     flexGrow: 1,
     background: '#eee',
+}
+let sLogo : React.CSSProperties = {
+    height: '2.6em',
 }
 let sSelect : React.CSSProperties = {
     width: '100%',
@@ -100,6 +103,9 @@ export class Earthbar extends React.Component<EarthbarProps, any> {
         if (isSyncing) { syncButtonText = 'Syncing'; }
 
         return <div style={sBar}>
+            <div style={sBarItem}>
+                <img style={sLogo} src='static/img/earthstar-logo-small.png' />
+            </div>
             <div style={sBarItem}>
                 <label>
                     <span style={{opacity: cFaintOpacity}}>workspace</span>
