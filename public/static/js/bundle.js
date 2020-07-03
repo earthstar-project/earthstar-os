@@ -67135,7 +67135,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DebugView = void 0;
 const React = __importStar(require("react"));
 let logDebug = (...args) => console.log('DebugView |', ...args);
-//================================================================================
 let sPage = {
     padding: 15,
 };
@@ -67162,6 +67161,7 @@ class DebugView extends React.Component {
         let router = this.props.router;
         let workspace = router.workspace;
         let docs = workspace === null ? [] : workspace.storage.documents({ includeHistory: false });
+        let pubs = workspace === null ? [] : workspace.syncer.state.pubs;
         return React.createElement("div", { style: sPage },
             React.createElement("h3", null, "params"),
             React.createElement("pre", null, JSON.stringify(router.params, null, 4)),
@@ -67179,15 +67179,19 @@ class DebugView extends React.Component {
                     React.createElement("pre", null,
                         "author address: ",
                         ((_a = workspace.authorKeypair) === null || _a === void 0 ? void 0 : _a.address) || '(no author)')),
-            React.createElement("h3", null, "docs"),
+            React.createElement("h3", null, "workspace.docs"),
             docs.length === 0
                 ? React.createElement("div", null, "(no docs)")
-                : docs.map(doc => React.createElement("div", null,
+                : docs.map(doc => React.createElement("div", { key: doc.path + '^' + doc.author },
                     React.createElement("div", null,
                         React.createElement("b", null,
                             React.createElement("code", null, doc.path))),
                     React.createElement("div", null,
-                        React.createElement("pre", null, doc.value)))));
+                        React.createElement("pre", null, doc.value)))),
+            React.createElement("h3", null, "workspace.pubs"),
+            pubs.length === 0
+                ? React.createElement("div", null, "(no pubs)")
+                : pubs.map(pub => React.createElement("pre", { key: pub.domain }, JSON.stringify(pub, null, 4))));
     }
 }
 exports.DebugView = DebugView;
@@ -67375,6 +67379,8 @@ class EarthstarRouter {
         this.workspaceAddress = null;
         this.authorKeypair = null;
         this.workspace = null;
+        this.unsubWorkspaceStorage = null;
+        this.unsubWorkspaceSyncer = null;
         logRouter('constructor');
         this.onChange = new emitter_1.Emitter();
         this.params = getHashParams();
@@ -67391,11 +67397,26 @@ class EarthstarRouter {
         this._buildWorkspace();
     }
     _buildWorkspace() {
+        // unsubscribe from old workspace events
+        if (this.unsubWorkspaceStorage) {
+            this.unsubWorkspaceStorage();
+        }
+        if (this.unsubWorkspaceSyncer) {
+            this.unsubWorkspaceSyncer();
+        }
+        this.unsubWorkspaceStorage = null;
+        this.unsubWorkspaceSyncer = null;
         if (this.workspaceAddress === null) {
             this.workspace = null;
         }
         else {
             this.workspace = new workspace_1.Workspace(new earthstar_1.StorageMemory([earthstar_1.ValidatorEs3], this.workspaceAddress), this.authorKeypair);
+            // TEMP HACK until router remembers pubs in localStorage
+            this.workspace.syncer.addPub('http://localhost:3333');
+            this.workspace.syncer.addPub('https://cinnamon-bun-earthstar-pub3.glitch.me/');
+            // pipe workspace's change events through to the router's change events
+            this.unsubWorkspaceStorage = this.workspace.storage.onChange.subscribe(() => this.onChange.send(undefined));
+            this.unsubWorkspaceSyncer = this.workspace.syncer.onChange.subscribe(() => this.onChange.send(undefined));
         }
     }
     _handleHashChange() {

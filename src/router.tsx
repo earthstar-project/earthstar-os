@@ -6,6 +6,8 @@ import {
     StorageMemory,
     ValidatorEs3,
 } from 'earthstar';
+
+import { Thunk } from './types';
 import { Emitter } from './emitter';
 import { Workspace } from './workspace';
 
@@ -53,6 +55,8 @@ export class EarthstarRouter {
     params : HashParams;
     workspace : Workspace | null = null;
     onChange : Emitter<undefined>;
+    unsubWorkspaceStorage : Thunk | null = null;
+    unsubWorkspaceSyncer : Thunk | null = null;
     constructor() {
         logRouter('constructor');
         this.onChange = new Emitter<undefined>();
@@ -72,6 +76,12 @@ export class EarthstarRouter {
         this._buildWorkspace();
     }
     _buildWorkspace() {
+        // unsubscribe from old workspace events
+        if (this.unsubWorkspaceStorage) { this.unsubWorkspaceStorage(); }
+        if (this.unsubWorkspaceSyncer) { this.unsubWorkspaceSyncer(); }
+        this.unsubWorkspaceStorage = null;
+        this.unsubWorkspaceSyncer = null;
+
         if (this.workspaceAddress === null) {
             this.workspace = null;
         } else {
@@ -79,6 +89,13 @@ export class EarthstarRouter {
                 new StorageMemory([ValidatorEs3], this.workspaceAddress),
                 this.authorKeypair
             );
+            // TEMP HACK until router remembers pubs in localStorage
+            this.workspace.syncer.addPub('http://localhost:3333');
+            this.workspace.syncer.addPub('https://cinnamon-bun-earthstar-pub3.glitch.me/');
+
+            // pipe workspace's change events through to the router's change events
+            this.unsubWorkspaceStorage = this.workspace.storage.onChange.subscribe(() => this.onChange.send(undefined));
+            this.unsubWorkspaceSyncer = this.workspace.syncer.onChange.subscribe(() => this.onChange.send(undefined));
         }
     }
     _handleHashChange() {
