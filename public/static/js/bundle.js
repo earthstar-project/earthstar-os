@@ -67959,6 +67959,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DebugView = void 0;
 const React = __importStar(require("react"));
 const throttle = require("lodash.throttle");
+const emitter_1 = require("./emitter");
 let logDebug = (...args) => console.log('DebugView |', ...args);
 let sPage = {
     padding: 15,
@@ -67970,12 +67971,8 @@ class DebugView extends React.Component {
     }
     componentDidMount() {
         logDebug('subscribing to router changes');
-        let throttledUpdate = throttle(() => this.forceUpdate(), 100);
-        this.unsub = this.props.router.onChange.subscribe(() => {
-            logDebug('Earthbar: router changed; re-rendering');
-            //this.forceUpdate();
-            throttledUpdate();
-        });
+        let router = this.props.router;
+        this.unsub = emitter_1.subscribeToMany([router.onWorkspaceChange, router.onStorageChange, router.onSyncerChange], throttle(() => this.forceUpdate(), 100));
     }
     componentWillUnmount() {
         if (this.unsub) {
@@ -68023,7 +68020,7 @@ class DebugView extends React.Component {
 }
 exports.DebugView = DebugView;
 
-},{"lodash.throttle":174,"react":225}],272:[function(require,module,exports){
+},{"./emitter":273,"lodash.throttle":174,"react":225}],272:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -68047,7 +68044,9 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Earthbar = void 0;
 const React = __importStar(require("react"));
+const throttle = require("lodash.throttle");
 const util_1 = require("./util");
+const emitter_1 = require("./emitter");
 let logEarthbar = (...args) => console.log('Earthbar |', ...args);
 //================================================================================
 let sBar = {
@@ -68087,10 +68086,8 @@ class Earthbar extends React.Component {
     }
     componentDidMount() {
         logEarthbar('subscribing to router changes');
-        this.unsub = this.props.router.onChange.subscribe(() => {
-            logEarthbar('Earthbar: router changed; re-rendering');
-            this.forceUpdate();
-        });
+        let router = this.props.router;
+        this.unsub = emitter_1.subscribeToMany([router.onWorkspaceChange, router.onSyncerChange], throttle(() => this.forceUpdate(), 100));
     }
     componentWillUnmount() {
         if (this.unsub) {
@@ -68104,10 +68101,17 @@ class Earthbar extends React.Component {
         }
     }
     render() {
+        var _a;
         logEarthbar('render');
         let router = this.props.router;
         let numPubs = router.workspace === null ? 0 : router.workspace.syncer.state.pubs.length;
-        let canSync = router.workspace !== null && numPubs > 0;
+        let showSyncButton = router.workspace !== null && numPubs > 0;
+        let isSyncing = ((_a = router.workspace) === null || _a === void 0 ? void 0 : _a.syncer.state.syncState) === 'syncing';
+        let enableSyncButton = showSyncButton && !isSyncing;
+        let syncButtonText = 'Sync now';
+        if (isSyncing) {
+            syncButtonText = 'Syncing';
+        }
         return React.createElement("div", { style: sBar },
             React.createElement("div", { style: sBarItem },
                 React.createElement("select", { style: sSelect, value: router.workspaceAddress || 'null', onChange: (e) => router.setWorkspace(e.target.value == 'null' ? null : e.target.value) },
@@ -68129,12 +68133,12 @@ class Earthbar extends React.Component {
                 React.createElement("i", null,
                     numPubs,
                     " pubs "),
-                React.createElement("button", { type: "button", onClick: () => this._syncButton(), disabled: !canSync }, "Sync now")));
+                React.createElement("button", { type: "button", onClick: () => this._syncButton(), disabled: !enableSyncButton, style: { visibility: showSyncButton ? 'visible' : 'hidden' } }, syncButtonText)));
     }
 }
 exports.Earthbar = Earthbar;
 
-},{"./util":275,"react":225}],273:[function(require,module,exports){
+},{"./emitter":273,"./util":275,"lodash.throttle":174,"react":225}],273:[function(require,module,exports){
 "use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -68146,7 +68150,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Emitter = void 0;
+exports.subscribeToMany = exports.Emitter = void 0;
 class Emitter {
     constructor() {
         // Allow subscribing to an event using callbacks.
@@ -68176,6 +68180,13 @@ class Emitter {
     }
 }
 exports.Emitter = Emitter;
+exports.subscribeToMany = (emitters, cb) => {
+    // Run the callback when any of the emitters fire.
+    // Return a thunk which unsubscribes from all the emitters.
+    let unsubs = emitters.map(e => e.subscribe(cb));
+    let unsubAll = () => unsubs.forEach(u => u());
+    return unsubAll;
+};
 
 },{}],274:[function(require,module,exports){
 "use strict";
@@ -68220,7 +68231,9 @@ class EarthstarRouter {
         this.unsubWorkspaceStorage = null;
         this.unsubWorkspaceSyncer = null;
         logRouter('constructor');
-        this.onChange = new emitter_1.Emitter();
+        this.onWorkspaceChange = new emitter_1.Emitter();
+        this.onStorageChange = new emitter_1.Emitter();
+        this.onSyncerChange = new emitter_1.Emitter();
         this.params = getHashParams();
         window.addEventListener('hashchange', () => {
             this._handleHashChange();
@@ -68270,8 +68283,8 @@ class EarthstarRouter {
             storage.onChange.subscribe(debouncedSave);
             // END LOCALSTORAGE HACK
             // pipe workspace's change events through to the router's change events
-            this.unsubWorkspaceStorage = this.workspace.storage.onChange.subscribe(() => this.onChange.send(undefined));
-            this.unsubWorkspaceSyncer = this.workspace.syncer.onChange.subscribe(() => this.onChange.send(undefined));
+            this.unsubWorkspaceStorage = this.workspace.storage.onChange.subscribe(() => this.onStorageChange.send(undefined));
+            this.unsubWorkspaceSyncer = this.workspace.syncer.onChange.subscribe(() => this.onSyncerChange.send(undefined));
         }
     }
     _handleHashChange() {
@@ -68290,7 +68303,7 @@ class EarthstarRouter {
             changed = true;
         }
         if (changed) {
-            this.onChange.send(undefined);
+            this.onWorkspaceChange.send(undefined);
         }
     }
     _loadHistoryFromLocalStorage() {
@@ -68351,7 +68364,7 @@ class EarthstarRouter {
             this.params.workspace = workspaceAddress.slice(1); // remove '+'
         }
         setHashParams(this.params);
-        this.onChange.send(undefined);
+        this.onWorkspaceChange.send(undefined);
     }
     setAuthorAddress(authorAddress) {
         // a helper for when you only know the address, not the whole keypair
@@ -68378,7 +68391,7 @@ class EarthstarRouter {
         this._saveHistory();
         // rebuild workspace
         this._buildWorkspace();
-        this.onChange.send(undefined);
+        this.onWorkspaceChange.send(undefined);
     }
 }
 exports.EarthstarRouter = EarthstarRouter;

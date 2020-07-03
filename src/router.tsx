@@ -55,12 +55,16 @@ export class EarthstarRouter {
     history : EarthstarLoginHistory;
     params : HashParams;
     workspace : Workspace | null = null;
-    onChange : Emitter<undefined>;
+    onWorkspaceChange : Emitter<undefined>;  // when the overall workspace or author is switched
+    onStorageChange : Emitter<undefined>;  // when documents change in the workspace
+    onSyncerChange : Emitter<undefined>;  // when the syncing state changes
     unsubWorkspaceStorage : Thunk | null = null;
     unsubWorkspaceSyncer : Thunk | null = null;
     constructor() {
         logRouter('constructor');
-        this.onChange = new Emitter<undefined>();
+        this.onWorkspaceChange = new Emitter<undefined>();
+        this.onStorageChange = new Emitter<undefined>();
+        this.onSyncerChange = new Emitter<undefined>();
         this.params = getHashParams();
         window.addEventListener('hashchange', () => {   // TEMP HACK
             this._handleHashChange();
@@ -111,8 +115,8 @@ export class EarthstarRouter {
             // END LOCALSTORAGE HACK
 
             // pipe workspace's change events through to the router's change events
-            this.unsubWorkspaceStorage = this.workspace.storage.onChange.subscribe(() => this.onChange.send(undefined));
-            this.unsubWorkspaceSyncer = this.workspace.syncer.onChange.subscribe(() => this.onChange.send(undefined));
+            this.unsubWorkspaceStorage = this.workspace.storage.onChange.subscribe(() => this.onStorageChange.send(undefined));
+            this.unsubWorkspaceSyncer = this.workspace.syncer.onChange.subscribe(() => this.onSyncerChange.send(undefined));
         }
     }
     _handleHashChange() {
@@ -131,7 +135,7 @@ export class EarthstarRouter {
             changed = true;
         }
         if (changed) {
-            this.onChange.send(undefined);
+            this.onWorkspaceChange.send(undefined);
         }
     }
     _loadHistoryFromLocalStorage() {
@@ -188,7 +192,7 @@ export class EarthstarRouter {
             this.params.workspace = workspaceAddress.slice(1);  // remove '+'
         }
         setHashParams(this.params);
-        this.onChange.send(undefined);
+        this.onWorkspaceChange.send(undefined);
     }
     setAuthorAddress(authorAddress : AuthorAddress | null) {
         // a helper for when you only know the address, not the whole keypair
@@ -218,6 +222,6 @@ export class EarthstarRouter {
         // rebuild workspace
         this._buildWorkspace();
 
-        this.onChange.send(undefined);
+        this.onWorkspaceChange.send(undefined);
     }
 }

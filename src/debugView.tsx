@@ -5,6 +5,7 @@ import {
 import throttle = require('lodash.throttle');
 
 import { Thunk } from './types';
+import { subscribeToMany } from './emitter';
 import { EarthstarRouter } from './router';
 
 let logDebug = (...args : any[]) => console.log('DebugView |', ...args);
@@ -28,12 +29,11 @@ export class DebugView extends React.Component<DebugViewProps, any> {
     unsub : Thunk | null = null;
     componentDidMount() {
         logDebug('subscribing to router changes');
-        let throttledUpdate = throttle(() => this.forceUpdate(), 100);
-        this.unsub = this.props.router.onChange.subscribe(() => {
-            logDebug('Earthbar: router changed; re-rendering');
-            //this.forceUpdate();
-            throttledUpdate();
-        });
+        let router = this.props.router;
+        this.unsub = subscribeToMany(
+            [router.onWorkspaceChange, router.onStorageChange, router.onSyncerChange],
+            throttle(() => this.forceUpdate(), 100)
+        );
     }
     componentWillUnmount() {
         if (this.unsub) { this.unsub(); }

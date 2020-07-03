@@ -1,8 +1,9 @@
 import * as React from 'react';
+import throttle = require('lodash.throttle');
 
-import { notNull, sorted } from './util';
 import { Thunk } from './types';
-
+import { notNull, sorted } from './util';
+import { subscribeToMany } from './emitter';
 import { EarthstarRouter } from './router';
 
 let logEarthbar = (...args : any[]) => console.log('Earthbar |', ...args);
@@ -47,10 +48,11 @@ export class Earthbar extends React.Component<EarthbarProps, any> {
     unsub : Thunk | null = null;
     componentDidMount() {
         logEarthbar('subscribing to router changes');
-        this.unsub = this.props.router.onChange.subscribe(() => {
-            logEarthbar('Earthbar: router changed; re-rendering');
-            this.forceUpdate();
-        });
+        let router = this.props.router;
+        this.unsub = subscribeToMany(
+            [router.onWorkspaceChange, router.onSyncerChange],
+            throttle(() => this.forceUpdate(), 100)
+        );
     }
     componentWillUnmount() {
         if (this.unsub) { this.unsub(); }
@@ -65,7 +67,13 @@ export class Earthbar extends React.Component<EarthbarProps, any> {
         logEarthbar('render');
         let router = this.props.router;
         let numPubs = router.workspace === null ? 0 : router.workspace.syncer.state.pubs.length;
-        let canSync = router.workspace !== null && numPubs > 0;
+
+        let showSyncButton = router.workspace !== null && numPubs > 0;
+        let isSyncing = router.workspace?.syncer.state.syncState === 'syncing';
+        let enableSyncButton = showSyncButton && !isSyncing;
+        let syncButtonText = 'Sync now';
+        if (isSyncing) { syncButtonText = 'Syncing'; }
+
         return <div style={sBar}>
             <div style={sBarItem}>
                 <select style={sSelect}
@@ -99,9 +107,10 @@ export class Earthbar extends React.Component<EarthbarProps, any> {
                 <i>{numPubs} pubs </i>
                 <button type="button"
                     onClick={() => this._syncButton()}
-                    disabled={!canSync}
+                    disabled={!enableSyncButton}
+                    style={{visibility: showSyncButton ? 'visible' : 'hidden'}}
                     >
-                    Sync now
+                    {syncButtonText}
                 </button>
             </div>
         </div>
