@@ -3,8 +3,11 @@ import {
     WorkspaceAddress,
     AuthorKeypair,
     AuthorAddress,
+    StorageMemory,
+    ValidatorEs3,
 } from 'earthstar';
 import { Emitter } from './emitter';
+import { Workspace } from './workspace';
 
 let logRouter = (...args : any[]) => console.log('Router |', ...args);
 
@@ -48,6 +51,7 @@ export class EarthstarRouter {
     authorKeypair : AuthorKeypair | null = null;
     history : EarthstarLoginHistory;
     params : HashParams;
+    workspace : Workspace | null = null;
     onChange : Emitter<undefined>;
     constructor() {
         logRouter('constructor');
@@ -65,17 +69,34 @@ export class EarthstarRouter {
 
         this._loadWorkspaceAddressFromHash();
         this._loadAuthorFromHistory();
+        this._buildWorkspace();
+    }
+    _buildWorkspace() {
+        if (this.workspaceAddress === null) {
+            this.workspace = null;
+        } else {
+            this.workspace = new Workspace(
+                new StorageMemory([ValidatorEs3], this.workspaceAddress),
+                this.authorKeypair
+            );
+        }
     }
     _handleHashChange() {
         logRouter('_handleHashChange');
+        let changed : boolean = false;
         let newParams = getHashParams();
         if (this.params.workspace !== newParams.workspace) {
             logRouter('...workspace changed');
             this._loadWorkspaceAddressFromHash();
+            this._buildWorkspace();
+            changed = true;
         }
         if (!deepEqual(newParams, this.params)) {
             logRouter('...anything changed; sending onChange');
             this.params = newParams;
+            changed = true;
+        }
+        if (changed) {
             this.onChange.send(undefined);
         }
     }
@@ -122,6 +143,8 @@ export class EarthstarRouter {
         this.history.workspaceAddresses = this.history.workspaceAddresses.filter(w => w !== workspaceAddress);
         this.history.workspaceAddresses.unshift(workspaceAddress);
         this._saveHistory();
+        // rebuild workspace
+        this._buildWorkspace();
         // update hash params.
         if (workspaceAddress === null) {
             logRouter('...removing workspace from hash params');
@@ -160,6 +183,9 @@ export class EarthstarRouter {
         this.history.authorKeypairs = this.history.authorKeypairs.filter(a => !deepEqual(a, authorKeypair));
         this.history.authorKeypairs.unshift(authorKeypair);
         this._saveHistory();
+
+        // rebuild workspace
+        this._buildWorkspace();
 
         this.onChange.send(undefined);
     }

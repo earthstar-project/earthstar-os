@@ -30,6 +30,7 @@ export class DebugView extends React.Component<DebugViewProps, any> {
     render() {
         logDebug('render');
         let router = this.props.router;
+        let workspace = router.workspace;
         return <div style={sPage}>
             <h3>params</h3>
             <pre>{JSON.stringify(router.params, null, 4)}</pre>
@@ -37,6 +38,14 @@ export class DebugView extends React.Component<DebugViewProps, any> {
             <code>{router.workspaceAddress || 'null'}</code>
             <h3>author</h3>
             <pre>{JSON.stringify(router.authorKeypair, null, 4)}</pre>
+            <h3>workspace</h3>
+            {workspace === null
+              ? <pre>null</pre>
+              : <div>
+                    <pre>workspace address: {workspace.address}</pre>
+                    <pre>author address: {workspace.authorKeypair?.address || 'null'}</pre>
+                </div>
+            }
         </div>;
     }
 }
