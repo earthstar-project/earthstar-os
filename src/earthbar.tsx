@@ -13,6 +13,7 @@ let logEarthbar = (...args : any[]) => console.log('Earthbar |', ...args);
 let cEggplant = '#5e4d76';
 let cWhite = '#fff';
 let cBlack = '#222';
+let cFaintOpacity = 0.6;
 
 let cBarText = cBlack;
 let cBarBackground = cWhite;
@@ -55,8 +56,9 @@ let sSelect : React.CSSProperties = {
     WebkitAppearance: 'none',
 }
 let sButton : React.CSSProperties = {
-    padding: 10,
-    marginLeft: 15,
+    //padding: 10,
+    height: '2em',
+    //marginLeft: 15,
     borderRadius: 10,
     background: cButtonBackground,
     color: cButtonText,
@@ -94,13 +96,13 @@ export class Earthbar extends React.Component<EarthbarProps, any> {
         let showSyncButton = router.workspace !== null && numPubs > 0;
         let isSyncing = router.workspace?.syncer.state.syncState === 'syncing';
         let enableSyncButton = showSyncButton && !isSyncing;
-        let syncButtonText = 'Sync now';
+        let syncButtonText = 'Sync';
         if (isSyncing) { syncButtonText = 'Syncing'; }
 
         return <div style={sBar}>
             <div style={sBarItem}>
                 <label>
-                    workspace:
+                    <span style={{opacity: cFaintOpacity}}>workspace</span>
                     <select name="ws" style={sSelect}
                         value={router.workspaceAddress || 'null'}
                         onChange={(e) => router.setWorkspace(e.target.value == 'null' ? null : e.target.value)}
@@ -119,7 +121,7 @@ export class Earthbar extends React.Component<EarthbarProps, any> {
             </div>
             <div style={sBarItem}>
                 <label>
-                    user:
+                    <span style={{opacity: cFaintOpacity}}>author</span>
                     <select style={sSelect}
                         value={router.authorKeypair == null ? 'null' : router.authorKeypair.address}
                         onChange={(e) => router.setAuthorAddress(e.target.value == 'null' ? null : e.target.value)}
@@ -133,15 +135,15 @@ export class Earthbar extends React.Component<EarthbarProps, any> {
             </div>
             <div style={sBarSpacer}/>
             <div style={sBarItem}>
-                <i>{numPubs} pubs </i>
+                <div style={{opacity: cFaintOpacity}}>{numPubs} pubs </div>
                 <button type="button"
                     onClick={() => this._syncButton()}
                     disabled={!enableSyncButton}
                     style={{
                         ...sButton,
                         visibility: showSyncButton ? 'visible' : 'hidden',
-                        opacity: enableSyncButton ? '100%' : '50%',
-                        width: '6.5em',
+                        opacity: enableSyncButton ? 1 : cFaintOpacity,
+                        width: '5em',
                     }}
                     >
                     {syncButtonText}
