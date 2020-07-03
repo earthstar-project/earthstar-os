@@ -68052,6 +68052,7 @@ let logEarthbar = (...args) => console.log('Earthbar |', ...args);
 let sBar = {
     display: 'flex',
     justifyContent: 'space-between',
+    alignItems: 'baseline',
     flexWrap: 'wrap',
     paddingTop: 15,
     paddingLeft: 15,
@@ -68078,6 +68079,15 @@ let sSelect = {
     appearance: 'none',
     MozAppearance: 'none',
     WebkitAppearance: 'none',
+};
+let sButton = {
+    padding: 10,
+    marginLeft: 15,
+    borderRadius: 10,
+    background: '#5e4d76',
+    color: 'white',
+    border: 'none',
+    fontSize: 'inherit',
 };
 class Earthbar extends React.Component {
     constructor() {
@@ -68133,7 +68143,7 @@ class Earthbar extends React.Component {
                 React.createElement("i", null,
                     numPubs,
                     " pubs "),
-                React.createElement("button", { type: "button", onClick: () => this._syncButton(), disabled: !enableSyncButton, style: { visibility: showSyncButton ? 'visible' : 'hidden' } }, syncButtonText)));
+                React.createElement("button", { type: "button", onClick: () => this._syncButton(), disabled: !enableSyncButton, style: Object.assign(Object.assign({}, sButton), { visibility: showSyncButton ? 'visible' : 'hidden' }) }, syncButtonText)));
     }
 }
 exports.Earthbar = Earthbar;

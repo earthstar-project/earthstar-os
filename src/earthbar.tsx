@@ -13,6 +13,7 @@ let logEarthbar = (...args : any[]) => console.log('Earthbar |', ...args);
 let sBar : React.CSSProperties = {
     display: 'flex',
     justifyContent: 'space-between',
+    alignItems: 'baseline',
     flexWrap: 'wrap',
     paddingTop: 15,
     paddingLeft: 15,
@@ -39,6 +40,15 @@ let sSelect : React.CSSProperties = {
     appearance: 'none',
     MozAppearance: 'none',
     WebkitAppearance: 'none',
+}
+let sButton : React.CSSProperties = {
+    padding: 10,
+    marginLeft: 15,
+    borderRadius: 10,
+    background: '#5e4d76',
+    color: 'white',
+    border: 'none',
+    fontSize: 'inherit',
 }
 
 interface EarthbarProps {
@@ -108,7 +118,7 @@ export class Earthbar extends React.Component<EarthbarProps, any> {
                 <button type="button"
                     onClick={() => this._syncButton()}
                     disabled={!enableSyncButton}
-                    style={{visibility: showSyncButton ? 'visible' : 'hidden'}}
+                    style={{...sButton, visibility: showSyncButton ? 'visible' : 'hidden'}}
                     >
                     {syncButtonText}
                 </button>
