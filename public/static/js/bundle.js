@@ -68049,14 +68049,24 @@ const util_1 = require("./util");
 const emitter_1 = require("./emitter");
 let logEarthbar = (...args) => console.log('Earthbar |', ...args);
 //================================================================================
+let cEggplant = '#5e4d76';
+let cWhite = '#fff';
+let cBlack = '#222';
+let cBarText = cBlack;
+let cBarBackground = cWhite;
+let cBarBorder = cEggplant;
+let cButtonBackground = cEggplant;
+let cButtonText = cWhite;
 let sBar = {
     display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
+    //justifyContent: 'space-between',  // not needed because we have an expanding spacer item
+    alignItems: 'center',
     flexWrap: 'wrap',
     paddingTop: 15,
     paddingLeft: 15,
-    borderBottom: '2px solid #5e4d76',
+    borderBottom: '2px solid ' + cBarBorder,
+    background: cBarBackground,
+    color: cBarText,
 };
 let sBarItem = {
     flexShrink: 1,
@@ -68065,17 +68075,18 @@ let sBarItem = {
 };
 let sBarSpacer = {
     flexGrow: 1,
+    background: '#eee',
 };
 let sSelect = {
     width: '100%',
-    height: 40,
+    height: '2em',
     fontSize: '100%',
     fontWeight: 'bold',
     cursor: 'pointer',
     borderRadius: 0,
-    backgroundColor: 'white',
+    backgroundColor: cWhite,
     border: 'none',
-    color: 'black',
+    color: cBarText,
     appearance: 'none',
     MozAppearance: 'none',
     WebkitAppearance: 'none',
@@ -68084,8 +68095,8 @@ let sButton = {
     padding: 10,
     marginLeft: 15,
     borderRadius: 10,
-    background: '#5e4d76',
-    color: 'white',
+    background: cButtonBackground,
+    color: cButtonText,
     border: 'none',
     fontSize: 'inherit',
 };
@@ -68124,26 +68135,30 @@ class Earthbar extends React.Component {
         }
         return React.createElement("div", { style: sBar },
             React.createElement("div", { style: sBarItem },
-                React.createElement("select", { style: sSelect, value: router.workspaceAddress || 'null', onChange: (e) => router.setWorkspace(e.target.value == 'null' ? null : e.target.value) },
-                    React.createElement("option", { value: "null" }, "(no workspace)"),
-                    util_1.sorted(util_1.notNull(router.history.workspaceAddresses)).map(wa => {
-                        let [name, key] = wa.split('.');
-                        let waShort = wa;
-                        if (key.length > 6) {
-                            waShort = name + '.' + key.slice(0, 6) + '...';
-                        }
-                        return React.createElement("option", { key: wa, value: wa }, waShort);
-                    }))),
+                React.createElement("label", null,
+                    "workspace:",
+                    React.createElement("select", { name: "ws", style: sSelect, value: router.workspaceAddress || 'null', onChange: (e) => router.setWorkspace(e.target.value == 'null' ? null : e.target.value) },
+                        React.createElement("option", { value: "null" }, "(no workspace)"),
+                        util_1.sorted(util_1.notNull(router.history.workspaceAddresses)).map(wa => {
+                            let [name, key] = wa.split('.');
+                            let waShort = wa;
+                            if (key.length > 6) {
+                                waShort = name + '.' + key.slice(0, 6) + '...';
+                            }
+                            return React.createElement("option", { key: wa, value: wa }, waShort);
+                        })))),
             React.createElement("div", { style: sBarItem },
-                React.createElement("select", { style: sSelect, value: router.authorKeypair == null ? 'null' : router.authorKeypair.address, onChange: (e) => router.setAuthorAddress(e.target.value == 'null' ? null : e.target.value) },
-                    React.createElement("option", { value: "null" }, "(no author)"),
-                    util_1.sorted(util_1.notNull(router.history.authorKeypairs).map(kp => kp.address)).map(authorAddress => React.createElement("option", { key: authorAddress, value: authorAddress }, authorAddress.slice(0, 6 + 6) + '...')))),
+                React.createElement("label", null,
+                    "user:",
+                    React.createElement("select", { style: sSelect, value: router.authorKeypair == null ? 'null' : router.authorKeypair.address, onChange: (e) => router.setAuthorAddress(e.target.value == 'null' ? null : e.target.value) },
+                        React.createElement("option", { value: "null" }, "(no author)"),
+                        util_1.sorted(util_1.notNull(router.history.authorKeypairs).map(kp => kp.address)).map(authorAddress => React.createElement("option", { key: authorAddress, value: authorAddress }, authorAddress.slice(0, 6 + 6) + '...'))))),
             React.createElement("div", { style: sBarSpacer }),
             React.createElement("div", { style: sBarItem },
                 React.createElement("i", null,
                     numPubs,
                     " pubs "),
-                React.createElement("button", { type: "button", onClick: () => this._syncButton(), disabled: !enableSyncButton, style: Object.assign(Object.assign({}, sButton), { visibility: showSyncButton ? 'visible' : 'hidden' }) }, syncButtonText)));
+                React.createElement("button", { type: "button", onClick: () => this._syncButton(), disabled: !enableSyncButton, style: Object.assign(Object.assign({}, sButton), { visibility: showSyncButton ? 'visible' : 'hidden', opacity: enableSyncButton ? '100%' : '50%', width: '6.5em' }) }, syncButtonText)));
     }
 }
 exports.Earthbar = Earthbar;
