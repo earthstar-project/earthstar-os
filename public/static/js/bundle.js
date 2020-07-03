@@ -67179,6 +67179,10 @@ class DebugView extends React.Component {
                     React.createElement("pre", null,
                         "author address: ",
                         ((_a = workspace.authorKeypair) === null || _a === void 0 ? void 0 : _a.address) || '(no author)')),
+            React.createElement("h3", null, "workspace.pubs"),
+            pubs.length === 0
+                ? React.createElement("div", null, "(no pubs)")
+                : pubs.map(pub => React.createElement("pre", { key: pub.domain }, JSON.stringify(pub, null, 4))),
             React.createElement("h3", null, "workspace.docs"),
             docs.length === 0
                 ? React.createElement("div", null, "(no docs)")
@@ -67187,11 +67191,7 @@ class DebugView extends React.Component {
                         React.createElement("b", null,
                             React.createElement("code", null, doc.path))),
                     React.createElement("div", null,
-                        React.createElement("pre", null, doc.value)))),
-            React.createElement("h3", null, "workspace.pubs"),
-            pubs.length === 0
-                ? React.createElement("div", null, "(no pubs)")
-                : pubs.map(pub => React.createElement("pre", { key: pub.domain }, JSON.stringify(pub, null, 4))));
+                        React.createElement("pre", null, doc.value)))));
     }
 }
 exports.DebugView = DebugView;
@@ -67279,6 +67279,8 @@ class Earthbar extends React.Component {
     render() {
         logEarthbar('render');
         let router = this.props.router;
+        let numPubs = router.workspace === null ? 0 : router.workspace.syncer.state.pubs.length;
+        let canSync = router.workspace !== null && numPubs > 0;
         return React.createElement("div", { style: sBar },
             React.createElement("div", { style: sBarItem },
                 React.createElement("select", { style: sSelect, value: router.workspaceAddress || 'null', onChange: (e) => router.setWorkspace(e.target.value == 'null' ? null : e.target.value) },
@@ -67297,8 +67299,10 @@ class Earthbar extends React.Component {
                     util_1.sorted(util_1.notNull(router.history.authorKeypairs).map(kp => kp.address)).map(authorAddress => React.createElement("option", { key: authorAddress, value: authorAddress }, authorAddress.slice(0, 6 + 6) + '...')))),
             React.createElement("div", { style: sBarSpacer }),
             React.createElement("div", { style: sBarItem },
-                React.createElement("i", null, "3 servers"),
-                React.createElement("button", { type: "button", onClick: () => this._syncButton(), disabled: router.workspace === null }, "Sync now")));
+                React.createElement("i", null,
+                    numPubs,
+                    " pubs "),
+                React.createElement("button", { type: "button", onClick: () => this._syncButton(), disabled: !canSync }, "Sync now")));
     }
 }
 exports.Earthbar = Earthbar;

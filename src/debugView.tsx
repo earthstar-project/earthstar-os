@@ -56,6 +56,13 @@ export class DebugView extends React.Component<DebugViewProps, any> {
                     <pre>author address: {workspace.authorKeypair?.address || '(no author)'}</pre>
                 </div>
             }
+            <h3>workspace.pubs</h3>
+            {pubs.length === 0
+              ? <div>(no pubs)</div>
+              : pubs.map(pub =>
+                    <pre key={pub.domain}>{JSON.stringify(pub, null, 4)}</pre>
+                )
+            }
             <h3>workspace.docs</h3>
             {docs.length === 0
               ? <div>(no docs)</div>
@@ -64,13 +71,6 @@ export class DebugView extends React.Component<DebugViewProps, any> {
                         <div><b><code>{doc.path}</code></b></div>
                         <div><pre>{doc.value}</pre></div>
                     </div>
-                )
-            }
-            <h3>workspace.pubs</h3>
-            {pubs.length === 0
-              ? <div>(no pubs)</div>
-              : pubs.map(pub =>
-                    <pre key={pub.domain}>{JSON.stringify(pub, null, 4)}</pre>
                 )
             }
         </div>;

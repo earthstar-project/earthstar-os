@@ -64,6 +64,8 @@ export class Earthbar extends React.Component<EarthbarProps, any> {
     render() {
         logEarthbar('render');
         let router = this.props.router;
+        let numPubs = router.workspace === null ? 0 : router.workspace.syncer.state.pubs.length;
+        let canSync = router.workspace !== null && numPubs > 0;
         return <div style={sBar}>
             <div style={sBarItem}>
                 <select style={sSelect}
@@ -94,10 +96,10 @@ export class Earthbar extends React.Component<EarthbarProps, any> {
             </div>
             <div style={sBarSpacer}/>
             <div style={sBarItem}>
-                <i>3 servers</i>
+                <i>{numPubs} pubs </i>
                 <button type="button"
                     onClick={() => this._syncButton()}
-                    disabled={router.workspace === null}
+                    disabled={!canSync}
                     >
                     Sync now
                 </button>
