@@ -67161,6 +67161,7 @@ class DebugView extends React.Component {
         logDebug('render');
         let router = this.props.router;
         let workspace = router.workspace;
+        let docs = workspace === null ? [] : workspace.storage.documents({ includeHistory: false });
         return React.createElement("div", { style: sPage },
             React.createElement("h3", null, "params"),
             React.createElement("pre", null, JSON.stringify(router.params, null, 4)),
@@ -67170,14 +67171,23 @@ class DebugView extends React.Component {
             React.createElement("pre", null, JSON.stringify(router.authorKeypair, null, 4)),
             React.createElement("h3", null, "workspace"),
             workspace === null
-                ? React.createElement("pre", null, "null")
+                ? React.createElement("div", null, "(no workspace)")
                 : React.createElement("div", null,
                     React.createElement("pre", null,
                         "workspace address: ",
                         workspace.address),
                     React.createElement("pre", null,
                         "author address: ",
-                        ((_a = workspace.authorKeypair) === null || _a === void 0 ? void 0 : _a.address) || 'null')));
+                        ((_a = workspace.authorKeypair) === null || _a === void 0 ? void 0 : _a.address) || '(no author)')),
+            React.createElement("h3", null, "docs"),
+            docs.length === 0
+                ? React.createElement("div", null, "(no docs)")
+                : docs.map(doc => React.createElement("div", null,
+                    React.createElement("div", null,
+                        React.createElement("b", null,
+                            React.createElement("code", null, doc.path))),
+                    React.createElement("div", null,
+                        React.createElement("pre", null, doc.value)))));
     }
 }
 exports.DebugView = DebugView;
