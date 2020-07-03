@@ -55,6 +55,12 @@ export class Earthbar extends React.Component<EarthbarProps, any> {
     componentWillUnmount() {
         if (this.unsub) { this.unsub(); }
     }
+    _syncButton() {
+        logEarthbar('sync button was pressed');
+        if (this.props.router.workspace) {
+            this.props.router.workspace.syncer.sync();
+        }
+    }
     render() {
         logEarthbar('render');
         let router = this.props.router;
@@ -89,7 +95,12 @@ export class Earthbar extends React.Component<EarthbarProps, any> {
             <div style={sBarSpacer}/>
             <div style={sBarItem}>
                 <i>3 servers</i>
-                <button type="button">sync now</button>
+                <button type="button"
+                    onClick={() => this._syncButton()}
+                    disabled={router.workspace === null}
+                    >
+                    Sync now
+                </button>
             </div>
         </div>
     }

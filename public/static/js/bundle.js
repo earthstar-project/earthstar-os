@@ -67270,6 +67270,12 @@ class Earthbar extends React.Component {
             this.unsub();
         }
     }
+    _syncButton() {
+        logEarthbar('sync button was pressed');
+        if (this.props.router.workspace) {
+            this.props.router.workspace.syncer.sync();
+        }
+    }
     render() {
         logEarthbar('render');
         let router = this.props.router;
@@ -67292,7 +67298,7 @@ class Earthbar extends React.Component {
             React.createElement("div", { style: sBarSpacer }),
             React.createElement("div", { style: sBarItem },
                 React.createElement("i", null, "3 servers"),
-                React.createElement("button", { type: "button" }, "sync now")));
+                React.createElement("button", { type: "button", onClick: () => this._syncButton(), disabled: router.workspace === null }, "Sync now")));
     }
 }
 exports.Earthbar = Earthbar;
