@@ -15,3 +15,14 @@ export let sorted = <T>(items : T[]) : T[] => {
     items.sort();
     return items;
 }
+
+export let randint = (min : number, max : number) : number =>
+    // inclusive
+    Math.floor(Math.random() * ((max+1) - min)) + min;
+
+export let randomColor = () : string => {
+    let r = randint(80, 240);
+    let g = randint(80, 240);
+    let b = randint(80, 240);
+    return `rgb(${r},${g},${b})`;
+}

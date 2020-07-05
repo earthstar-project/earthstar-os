@@ -67963,12 +67963,52 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DebugView = void 0;
+exports.DebugView = exports.DebugEmitterView = void 0;
 const React = __importStar(require("react"));
 const earthstar_1 = require("earthstar");
 const throttle = require("lodash.throttle");
+const util_1 = require("./util");
 let logDebug = (...args) => console.log('DebugView |', ...args);
-//================================================================================
+let logDebugEmitter = (...args) => console.log('DebugEmitterView |', ...args);
+class DebugEmitterView extends React.Component {
+    constructor() {
+        super(...arguments);
+        this.unsub = null;
+        this.colors = ['white', 'white', 'white', 'white'];
+    }
+    componentDidMount() {
+        logDebugEmitter('subscribing to router changes');
+        this.unsub = this.props.emitter.subscribe(() => {
+            logDebugEmitter(this.props.name);
+            this.colors.unshift(util_1.randomColor());
+            this.colors.pop();
+            this.forceUpdate();
+        });
+    }
+    componentWillUnmount() {
+        if (this.unsub) {
+            this.unsub();
+        }
+    }
+    render() {
+        return React.createElement("div", { style: {
+                backgroundColor: this.colors[0],
+                display: 'inline-block',
+                padding: 10,
+                borderRadius: 3,
+                marginRight: 10,
+            } },
+            this.props.name,
+            this.colors.map(c => React.createElement("div", { style: {
+                    display: 'inline-block',
+                    height: '1em',
+                    width: '1em',
+                    backgroundColor: c,
+                    border: '1px solid black',
+                } })));
+    }
+}
+exports.DebugEmitterView = DebugEmitterView;
 let sPage = {
     padding: 15,
 };
@@ -67980,7 +68020,12 @@ class DebugView extends React.Component {
     componentDidMount() {
         logDebug('subscribing to router changes');
         let router = this.props.router;
-        this.unsub = earthstar_1.subscribeToMany([router.onWorkspaceChange, router.onStorageChange, router.onSyncerChange], throttle(() => this.forceUpdate(), 100));
+        this.unsub = earthstar_1.subscribeToMany([
+            router.onParamsChange,
+            router.onWorkspaceChange,
+            router.onStorageChange,
+            router.onSyncerChange
+        ], throttle(() => this.forceUpdate(), 100));
     }
     componentWillUnmount() {
         if (this.unsub) {
@@ -67995,6 +68040,12 @@ class DebugView extends React.Component {
         let docs = workspace === null ? [] : workspace.storage.documents({ includeHistory: false });
         let pubs = workspace === null ? [] : workspace.syncer.state.pubs;
         return React.createElement("div", { style: sPage },
+            React.createElement("h3", null, "events"),
+            React.createElement("div", null,
+                React.createElement(DebugEmitterView, { name: "params", emitter: router.onParamsChange }),
+                React.createElement(DebugEmitterView, { name: "workspace", emitter: router.onWorkspaceChange }),
+                React.createElement(DebugEmitterView, { name: "storage", emitter: router.onStorageChange }),
+                React.createElement(DebugEmitterView, { name: "syncer", emitter: router.onSyncerChange })),
             React.createElement("h3", null, "params"),
             React.createElement("pre", null, JSON.stringify(router.params, null, 4)),
             React.createElement("h3", null, "workspace"),
@@ -68028,7 +68079,7 @@ class DebugView extends React.Component {
 }
 exports.DebugView = DebugView;
 
-},{"earthstar":102,"lodash.throttle":174,"react":225}],272:[function(require,module,exports){
+},{"./util":274,"earthstar":102,"lodash.throttle":174,"react":225}],272:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -68121,7 +68172,10 @@ class Earthbar extends React.Component {
     componentDidMount() {
         logEarthbar('subscribing to router changes');
         let router = this.props.router;
-        this.unsub = earthstar_1.subscribeToMany([router.onWorkspaceChange, router.onSyncerChange], throttle(() => this.forceUpdate(), 100));
+        this.unsub = earthstar_1.subscribeToMany([
+            router.onWorkspaceChange,
+            router.onSyncerChange // to update Sync button state
+        ], throttle(() => this.forceUpdate(), 100));
     }
     componentWillUnmount() {
         if (this.unsub) {
@@ -68220,9 +68274,14 @@ class EarthstarRouter {
         this.unsubWorkspaceStorage = null;
         this.unsubWorkspaceSyncer = null;
         logRouter('constructor');
-        this.onWorkspaceChange = new earthstar_1.Emitter();
-        this.onStorageChange = new earthstar_1.Emitter();
-        this.onSyncerChange = new earthstar_1.Emitter();
+        this.onParamsChange = new earthstar_1.Emitter(); // change in hash params except for workspace
+        this.onWorkspaceChange = new earthstar_1.Emitter(); // change in workspace (by hash change or setWorkspace)
+        this.onStorageChange = new earthstar_1.Emitter(); // change in the data in a workspace's Storage
+        this.onSyncerChange = new earthstar_1.Emitter(); // change from a workspace's Syncer
+        this.onParamsChange.subscribe(() => logRouter('❗️ params change'));
+        this.onWorkspaceChange.subscribe(() => logRouter('❗️ workspace change'));
+        this.onStorageChange.subscribe(() => logRouter('❗️ storage change'));
+        this.onSyncerChange.subscribe(() => logRouter('❗️ syncer change'));
         this.params = getHashParams();
         window.addEventListener('hashchange', () => {
             this._handleHashChange();
@@ -68278,21 +68337,17 @@ class EarthstarRouter {
     }
     _handleHashChange() {
         logRouter('_handleHashChange');
-        let changed = false;
         let newParams = getHashParams();
         if (this.params.workspace !== newParams.workspace) {
-            logRouter('...workspace changed');
+            logRouter('...workspace changed via hash');
             this._loadWorkspaceAddressFromHash();
             this._buildWorkspace();
-            changed = true;
-        }
-        if (!deepEqual(newParams, this.params)) {
-            logRouter('...anything changed; sending onChange');
-            this.params = newParams;
-            changed = true;
-        }
-        if (changed) {
             this.onWorkspaceChange.send(undefined);
+        }
+        else if (!deepEqual(newParams, this.params)) {
+            logRouter('...hash params changed (except for workspace)');
+            this.params = newParams;
+            this.onParamsChange.send(newParams);
         }
     }
     _loadHistoryFromLocalStorage() {
@@ -68397,7 +68452,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sorted = exports.notNull = exports.sleep = void 0;
+exports.randomColor = exports.randint = exports.sorted = exports.notNull = exports.sleep = void 0;
 exports.sleep = (ms) => __awaiter(void 0, void 0, void 0, function* () {
     return new Promise((resolve, reject) => {
         setTimeout(resolve, ms);
@@ -68411,6 +68466,15 @@ exports.notNull = (items) => items.filter(t => t !== null);
 exports.sorted = (items) => {
     items.sort();
     return items;
+};
+exports.randint = (min, max) => 
+// inclusive
+Math.floor(Math.random() * ((max + 1) - min)) + min;
+exports.randomColor = () => {
+    let r = exports.randint(80, 240);
+    let g = exports.randint(80, 240);
+    let b = exports.randint(80, 240);
+    return `rgb(${r},${g},${b})`;
 };
 
 },{}],275:[function(require,module,exports){

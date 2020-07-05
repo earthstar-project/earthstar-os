@@ -11,6 +11,7 @@ import {
 
 import { Thunk } from './types';
 import { Workspace } from './workspace';
+import { Hash } from 'crypto';
 
 let logRouter = (...args : any[]) => console.log('Router |', ...args);
 
@@ -52,19 +53,30 @@ type EarthstarLoginHistory = {
 export class EarthstarRouter {
     workspaceAddress : WorkspaceAddress | null = null;
     authorKeypair : AuthorKeypair | null = null;
-    history : EarthstarLoginHistory;
     params : HashParams;
+
+    history : EarthstarLoginHistory;
     workspace : Workspace | null = null;
+
+    onParamsChange : Emitter<HashParams>;
     onWorkspaceChange : Emitter<undefined>;  // when the overall workspace or author is switched
     onStorageChange : Emitter<undefined>;  // when documents change in the workspace
     onSyncerChange : Emitter<undefined>;  // when the syncing state changes
+
     unsubWorkspaceStorage : Thunk | null = null;
     unsubWorkspaceSyncer : Thunk | null = null;
     constructor() {
         logRouter('constructor');
-        this.onWorkspaceChange = new Emitter<undefined>();
-        this.onStorageChange = new Emitter<undefined>();
-        this.onSyncerChange = new Emitter<undefined>();
+        this.onParamsChange = new Emitter<HashParams>();  // change in hash params except for workspace
+        this.onWorkspaceChange = new Emitter<undefined>();  // change in workspace (by hash change or setWorkspace)
+        this.onStorageChange = new Emitter<undefined>();  // change in the data in a workspace's Storage
+        this.onSyncerChange = new Emitter<undefined>();  // change from a workspace's Syncer
+
+        this.onParamsChange.subscribe(() => logRouter('❗️ params change'));
+        this.onWorkspaceChange.subscribe(() => logRouter('❗️ workspace change'));
+        this.onStorageChange.subscribe(() => logRouter('❗️ storage change'));
+        this.onSyncerChange.subscribe(() => logRouter('❗️ syncer change'));
+
         this.params = getHashParams();
         window.addEventListener('hashchange', () => {   // TEMP HACK
             this._handleHashChange();
@@ -121,21 +133,16 @@ export class EarthstarRouter {
     }
     _handleHashChange() {
         logRouter('_handleHashChange');
-        let changed : boolean = false;
         let newParams = getHashParams();
         if (this.params.workspace !== newParams.workspace) {
-            logRouter('...workspace changed');
+            logRouter('...workspace changed via hash');
             this._loadWorkspaceAddressFromHash();
             this._buildWorkspace();
-            changed = true;
-        }
-        if (!deepEqual(newParams, this.params)) {
-            logRouter('...anything changed; sending onChange');
-            this.params = newParams;
-            changed = true;
-        }
-        if (changed) {
             this.onWorkspaceChange.send(undefined);
+        } else if (!deepEqual(newParams, this.params)) {
+            logRouter('...hash params changed (except for workspace)');
+            this.params = newParams;
+            this.onParamsChange.send(newParams);
         }
     }
     _loadHistoryFromLocalStorage() {

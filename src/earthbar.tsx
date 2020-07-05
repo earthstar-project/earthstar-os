@@ -78,7 +78,10 @@ export class Earthbar extends React.Component<EarthbarProps, any> {
         logEarthbar('subscribing to router changes');
         let router = this.props.router;
         this.unsub = subscribeToMany(
-            [router.onWorkspaceChange, router.onSyncerChange],
+            [
+                router.onWorkspaceChange,  // ?
+                router.onSyncerChange  // to update Sync button state
+            ],
             throttle(() => this.forceUpdate(), 100)
         );
     }
