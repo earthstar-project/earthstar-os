@@ -67907,7 +67907,16 @@ const earthbar_1 = require("./earthbar");
 const debugView_1 = require("./debugView");
 //================================================================================
 // MAIN
-let router = new router_1.EarthstarRouter();
+let appsAndNames = {
+    debug: 'Debug view',
+    chess: 'Chess',
+    profile: 'Profile',
+    wiki: 'Wiki',
+};
+let router = new router_1.EarthstarRouter(appsAndNames);
+setTimeout(() => {
+    router.setApp('chess');
+}, 2000);
 let addDemoContent = (router) => {
     let demoKeypairs = [
         {
@@ -67941,10 +67950,11 @@ ReactDOM.render([
     React.createElement("div", { key: "events", style: { padding: 15 } },
         React.createElement("h3", null, "events"),
         React.createElement("div", null,
-            React.createElement(debugView_1.DebugEmitterView, { name: "params", emitter: router.onParamsChange }),
-            React.createElement(debugView_1.DebugEmitterView, { name: "workspace", emitter: router.onWorkspaceChange }),
-            React.createElement(debugView_1.DebugEmitterView, { name: "storage", emitter: router.onStorageChange }),
-            React.createElement(debugView_1.DebugEmitterView, { name: "syncer", emitter: router.onSyncerChange }))),
+            React.createElement(debugView_1.DebugEmitterView, { emitter: router.onParamsChange }),
+            React.createElement(debugView_1.DebugEmitterView, { emitter: router.onAppChange }),
+            React.createElement(debugView_1.DebugEmitterView, { emitter: router.onWorkspaceChange }),
+            React.createElement(debugView_1.DebugEmitterView, { emitter: router.onStorageChange }),
+            React.createElement(debugView_1.DebugEmitterView, { emitter: router.onSyncerChange }))),
     React.createElement(debugView_1.DebugView, { key: "debug", router: router }),
 ], document.getElementById('react-slot'));
 
@@ -67972,10 +67982,10 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DebugView = exports.DebugEmitterView = void 0;
 const React = __importStar(require("react"));
-const earthstar_1 = require("earthstar");
 const throttle = require("lodash.throttle");
 const util_1 = require("./util");
 const rainbowBug_1 = require("./rainbowBug");
+const emitter_1 = require("./emitter");
 let logDebug = (...args) => console.log('DebugView |', ...args);
 let logDebugEmitter = (...args) => console.log('DebugEmitterView |', ...args);
 class DebugEmitterView extends React.Component {
@@ -67985,9 +67995,9 @@ class DebugEmitterView extends React.Component {
         this.colors = ['white', 'white', 'white', 'white', 'white', 'white', 'white'];
     }
     componentDidMount() {
-        logDebugEmitter('subscribing to router changes for ' + this.props.name);
+        logDebugEmitter('subscribing to router changes for ' + this.props.emitter.name);
         this.unsub = this.props.emitter.subscribe(() => {
-            logDebugEmitter('rendering because of an event: ' + this.props.name);
+            logDebugEmitter('rendering because of an event: ' + this.props.emitter.name);
             this.colors.unshift(util_1.randomColor());
             this.colors.pop();
             this.forceUpdate();
@@ -67999,7 +68009,7 @@ class DebugEmitterView extends React.Component {
         }
     }
     render() {
-        return React.createElement(rainbowBug_1.RainbowBug, { name: this.props.name });
+        return React.createElement(rainbowBug_1.RainbowBug, { name: this.props.emitter.name });
     }
 }
 exports.DebugEmitterView = DebugEmitterView;
@@ -68014,8 +68024,9 @@ class DebugView extends React.Component {
     componentDidMount() {
         logDebug('subscribing to router changes');
         let router = this.props.router;
-        this.unsub = earthstar_1.subscribeToMany([
+        this.unsub = emitter_1.subscribeToMany([
             router.onParamsChange,
+            router.onAppChange,
             router.onWorkspaceChange,
             router.onStorageChange,
             router.onSyncerChange
@@ -68036,6 +68047,11 @@ class DebugView extends React.Component {
         return React.createElement("div", { style: sPage },
             React.createElement("div", null,
                 React.createElement(rainbowBug_1.RainbowBug, { name: "DebugView" })),
+            React.createElement("h3", null, "app"),
+            React.createElement("code", null,
+                '' + router.app,
+                ": ",
+                '' + router.appName),
             React.createElement("h3", null, "params"),
             React.createElement("pre", null, JSON.stringify(router.params, null, 4)),
             React.createElement("h3", null, "workspace"),
@@ -68069,7 +68085,7 @@ class DebugView extends React.Component {
 }
 exports.DebugView = DebugView;
 
-},{"./rainbowBug":274,"./util":276,"earthstar":102,"lodash.throttle":174,"react":225}],272:[function(require,module,exports){
+},{"./emitter":273,"./rainbowBug":274,"./util":276,"lodash.throttle":174,"react":225}],272:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -68377,18 +68393,22 @@ let LOGIN_HISTORY_LOCALSTORAGE_KEY = 'earthstar-logins';
 // note we omit the plus on the workspace address because it would have to be percent-encoded.
 // if workspace is null, it's absent from the url hash.
 class EarthstarRouter {
-    constructor() {
+    constructor(appsAndNames) {
         this.workspaceAddress = null;
         this.authorKeypair = null;
+        this.app = null;
+        this.appName = null;
         this.workspace = null;
         this.unsubWorkspaceStorage = null;
         this.unsubWorkspaceSyncer = null;
         log('Router.constructor() | starting');
         log('Router.constructor() | ...creating emitters');
-        this.onParamsChange = new emitter_1.Emitter('params'); // change in hash params except for workspace
-        this.onWorkspaceChange = new emitter_1.Emitter('workspace'); // change in workspace (by hash change or setWorkspace)
-        this.onStorageChange = new emitter_1.Emitter('storage'); // change in the data in a workspace's Storage
-        this.onSyncerChange = new emitter_1.Emitter('syncer'); // change from a workspace's Syncer
+        this.onParamsChange = new emitter_1.Emitter('params'); // change in hash params except for workspace or app
+        this.onAppChange = new emitter_1.Emitter('app'); // app change
+        this.onWorkspaceChange = new emitter_1.Emitter('workspace'); // change in workspace address or author (by manual hash change, or setWorkspace)
+        this.onStorageChange = new emitter_1.Emitter('storage'); // change in the data in a workspace's Storage.  not fired when the whole workspace is switched.
+        this.onSyncerChange = new emitter_1.Emitter('syncer'); // change from a workspace's Syncer.  not fired when the whole workspace is switched.
+        this.appsAndNames = appsAndNames;
         log('Router.constructor() | ...setting up hash params and listener');
         this.params = getHashParams();
         window.addEventListener('hashchange', () => {
@@ -68402,6 +68422,7 @@ class EarthstarRouter {
         this._loadHistoryFromLocalStorage();
         log('Router.constructor() | ...loading the rest');
         this._loadWorkspaceAddressFromHash();
+        this._loadAppFromHash();
         this._loadAuthorFromHistory();
         this._buildWorkspace();
         log('Router.constructor() | ...done');
@@ -68473,9 +68494,19 @@ class EarthstarRouter {
         else {
             log('Router._handleHashChange() | ...workspace did not change in params');
         }
-        // check for any other change besides workspace
-        let oldWithoutWs = Object.assign(Object.assign({}, this.params), { workspace: null });
-        let newWithoutWs = Object.assign(Object.assign({}, newParams), { workspace: null });
+        // check for app change
+        if (oldParams.app !== newParams.app) {
+            log(`Router._handleHashChange() | ...app changed via hash, from ${oldParams.app} to ${newParams.app}`);
+            this._loadAppFromHash();
+            log('Router._handleHashChange() | ...sending onAppChange');
+            this.onAppChange.send(this.app);
+        }
+        else {
+            log('Router._handleHashChange() | ...app did not change in params');
+        }
+        // check for any other change besides workspace and app
+        let oldWithoutWs = Object.assign(Object.assign({}, this.params), { workspace: null, app: null });
+        let newWithoutWs = Object.assign(Object.assign({}, newParams), { workspace: null, app: null });
         if (!deepEqual(oldWithoutWs, newWithoutWs)) {
             log('Router._handleHashChange() | ...hash params changed (except for workspace)');
             log(oldWithoutWs);
@@ -68500,6 +68531,17 @@ class EarthstarRouter {
             }
         }
         log('Router._loadHistoryFromLocalStorage() | done: ', this.history);
+    }
+    _loadAppFromHash() {
+        log('Router._loadAppFromHash() | start');
+        let app = getHashParams().app || null;
+        if (app !== null && this.appsAndNames[app] === undefined) {
+            app = null;
+            log('Router._loadAppFromHash() | ...unrecognized app not in appsAndNames -- setting to null:', app);
+        }
+        this.app = app;
+        this.appName = app === null ? null : this.appsAndNames[app];
+        log('Router._loadAppFromHash() | ...done: ', this.app, this.appName);
     }
     _loadWorkspaceAddressFromHash() {
         log('Router._loadWorkspaceAddressFromHash() | start');
@@ -68585,6 +68627,25 @@ class EarthstarRouter {
         log('Router.setAuthorKeypair() | ...send onWorkspaceChange');
         this.onWorkspaceChange.send(undefined);
         log('Router.setAuthorKeypair() | ...done');
+    }
+    setApp(app) {
+        log('Router.setApp(' + app + ') | start');
+        if (app === this.app) {
+            log('Router.setApp() | ...nothing to change.  done.');
+            return;
+        }
+        this.app = app;
+        log('Router.setApp() | ...updating hash params');
+        let newParams = Object.assign({}, this.params);
+        if (app === null) {
+            delete newParams.app;
+        }
+        else {
+            newParams.app = app;
+        }
+        // this will send onAppChange event for us
+        setHashParams(newParams);
+        log('Router.setApp() | ...done');
     }
 }
 exports.EarthstarRouter = EarthstarRouter;

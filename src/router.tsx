@@ -48,6 +48,8 @@ type EarthstarLoginHistory = {
     // servers : string[];  // TODO
 }
 
+type String2String = {[key:string]: string};
+
 // expected url hash params:
 // #workspace=gardening.xxxx
 // note we omit the plus on the workspace address because it would have to be percent-encoded.
@@ -56,24 +58,31 @@ export class EarthstarRouter {
     workspaceAddress : WorkspaceAddress | null = null;
     authorKeypair : AuthorKeypair | null = null;
     params : HashParams;
+    app : string | null = null;
+    appName : string | null = null;
+    appsAndNames : String2String;  // map from app short codename to human-readable name
 
     history : EarthstarLoginHistory;
     workspace : Workspace | null = null;
 
     onParamsChange : Emitter<HashParams>;
-    onWorkspaceChange : Emitter<undefined>;  // when the overall workspace or author is switched
-    onStorageChange : Emitter<undefined>;  // when documents change in the workspace
-    onSyncerChange : Emitter<undefined>;  // when the syncing state changes
+    onAppChange : Emitter<string | null>;
+    onWorkspaceChange : Emitter<undefined>;
+    onStorageChange : Emitter<undefined>;
+    onSyncerChange : Emitter<undefined>;
 
     unsubWorkspaceStorage : Thunk | null = null;
     unsubWorkspaceSyncer : Thunk | null = null;
-    constructor() {
+    constructor(appsAndNames : String2String) {
         log('Router.constructor() | starting');
         log('Router.constructor() | ...creating emitters');
-        this.onParamsChange = new Emitter<HashParams>('params');  // change in hash params except for workspace
-        this.onWorkspaceChange = new Emitter<undefined>('workspace');  // change in workspace (by hash change or setWorkspace)
-        this.onStorageChange = new Emitter<undefined>('storage');  // change in the data in a workspace's Storage
-        this.onSyncerChange = new Emitter<undefined>('syncer');  // change from a workspace's Syncer
+        this.onParamsChange = new Emitter<HashParams>('params');  // change in hash params except for workspace or app
+        this.onAppChange = new Emitter<string | null>('app');  // app change
+        this.onWorkspaceChange = new Emitter<undefined>('workspace');  // change in workspace address or author (by manual hash change, or setWorkspace)
+        this.onStorageChange = new Emitter<undefined>('storage');  // change in the data in a workspace's Storage.  not fired when the whole workspace is switched.
+        this.onSyncerChange = new Emitter<undefined>('syncer');  // change from a workspace's Syncer.  not fired when the whole workspace is switched.
+
+        this.appsAndNames = appsAndNames;
 
         log('Router.constructor() | ...setting up hash params and listener');
         this.params = getHashParams();
@@ -90,6 +99,7 @@ export class EarthstarRouter {
 
         log('Router.constructor() | ...loading the rest');
         this._loadWorkspaceAddressFromHash();
+        this._loadAppFromHash();
         this._loadAuthorFromHistory();
         this._buildWorkspace();
         log('Router.constructor() | ...done');
@@ -161,9 +171,20 @@ export class EarthstarRouter {
         } else {
             log('Router._handleHashChange() | ...workspace did not change in params');
         }
-        // check for any other change besides workspace
-        let oldWithoutWs = {...this.params, workspace: null};
-        let newWithoutWs = {...newParams, workspace: null};
+
+        // check for app change
+        if (oldParams.app !== newParams.app) {
+            log(`Router._handleHashChange() | ...app changed via hash, from ${oldParams.app} to ${newParams.app}`);
+            this._loadAppFromHash();
+            log('Router._handleHashChange() | ...sending onAppChange');
+            this.onAppChange.send(this.app);
+        } else {
+            log('Router._handleHashChange() | ...app did not change in params');
+        }
+
+        // check for any other change besides workspace and app
+        let oldWithoutWs = {...this.params, workspace: null, app: null};
+        let newWithoutWs = {...newParams, workspace: null, app: null};
         if (!deepEqual(oldWithoutWs, newWithoutWs)) {
             log('Router._handleHashChange() | ...hash params changed (except for workspace)');
             log(oldWithoutWs);
@@ -186,6 +207,17 @@ export class EarthstarRouter {
             }
         }
         log('Router._loadHistoryFromLocalStorage() | done: ', this.history);
+    }
+    _loadAppFromHash() {
+        log('Router._loadAppFromHash() | start');
+        let app = getHashParams().app || null;
+        if (app !== null && this.appsAndNames[app] === undefined) {
+            app = null;
+            log('Router._loadAppFromHash() | ...unrecognized app not in appsAndNames -- setting to null:', app);
+        }
+        this.app = app;
+        this.appName = app === null ? null : this.appsAndNames[app];
+        log('Router._loadAppFromHash() | ...done: ', this.app, this.appName);
     }
     _loadWorkspaceAddressFromHash() {
         log('Router._loadWorkspaceAddressFromHash() | start');
@@ -271,5 +303,23 @@ export class EarthstarRouter {
         log('Router.setAuthorKeypair() | ...send onWorkspaceChange');
         this.onWorkspaceChange.send(undefined);
         log('Router.setAuthorKeypair() | ...done');
+    }
+    setApp(app : string | null) {
+        log('Router.setApp(' + app + ') | start');
+        if (app === this.app) {
+            log('Router.setApp() | ...nothing to change.  done.');
+            return;
+        }
+        this.app = app;
+        log('Router.setApp() | ...updating hash params');
+        let newParams = {...this.params};
+        if (app === null) {
+            delete newParams.app;
+        } else {
+            newParams.app = app;
+        }
+        // this will send onAppChange event for us
+        setHashParams(newParams);
+        log('Router.setApp() | ...done');
     }
 }

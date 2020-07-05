@@ -1,9 +1,7 @@
 import * as React from 'react';
 import {
     Document,
-    Emitter,
     Pub,
-    subscribeToMany,
 } from 'earthstar'
 import throttle = require('lodash.throttle');
 
@@ -13,6 +11,7 @@ import {
 } from './util';
 import { EarthstarRouter } from './router';
 import { RainbowBug } from './rainbowBug';
+import { Emitter, subscribeToMany } from './emitter';
 
 let logDebug = (...args : any[]) => console.log('DebugView |', ...args);
 let logDebugEmitter = (...args : any[]) => console.log('DebugEmitterView |', ...args);
@@ -20,16 +19,15 @@ let logDebugEmitter = (...args : any[]) => console.log('DebugEmitterView |', ...
 //================================================================================
 
 interface DebugEmitterViewProps {
-    name : string;
     emitter : Emitter<any>;
 }
 export class DebugEmitterView extends React.Component<DebugEmitterViewProps, any> {
     unsub : Thunk | null = null;
     colors : string[] = ['white', 'white', 'white', 'white', 'white', 'white', 'white'];
     componentDidMount() {
-        logDebugEmitter('subscribing to router changes for ' + this.props.name);
+        logDebugEmitter('subscribing to router changes for ' + this.props.emitter.name);
         this.unsub = this.props.emitter.subscribe(() => {
-            logDebugEmitter('rendering because of an event: ' + this.props.name);
+            logDebugEmitter('rendering because of an event: ' + this.props.emitter.name);
             this.colors.unshift(randomColor());
             this.colors.pop();
             this.forceUpdate();
@@ -39,7 +37,7 @@ export class DebugEmitterView extends React.Component<DebugEmitterViewProps, any
         if (this.unsub) { this.unsub(); }
     }
     render() {
-        return <RainbowBug name={this.props.name} />;
+        return <RainbowBug name={this.props.emitter.name} />;
     }
 }
 
@@ -57,6 +55,7 @@ export class DebugView extends React.Component<DebugViewProps, any> {
         this.unsub = subscribeToMany<any>(
             [
                 router.onParamsChange,
+                router.onAppChange,
                 router.onWorkspaceChange,
                 router.onStorageChange,
                 router.onSyncerChange
@@ -75,6 +74,8 @@ export class DebugView extends React.Component<DebugViewProps, any> {
         let pubs : Pub[] = workspace === null ? [] : workspace.syncer.state.pubs;
         return <div style={sPage}>
             <div><RainbowBug name="DebugView"/></div>
+            <h3>app</h3>
+            <code>{'' + router.app}: {'' + router.appName}</code>
             <h3>params</h3>
             <pre>{JSON.stringify(router.params, null, 4)}</pre>
             <h3>workspace</h3>

@@ -8,7 +8,17 @@ import { DebugView, DebugEmitterView } from './debugView';
 //================================================================================
 // MAIN
 
-let router = new EarthstarRouter();
+let appsAndNames = {
+    debug: 'Debug view',
+    chess: 'Chess',
+    profile: 'Profile',
+    wiki: 'Wiki',
+}
+
+let router = new EarthstarRouter(appsAndNames);
+setTimeout(() => {
+    router.setApp('chess');
+}, 2000);
 
 let addDemoContent = (router : EarthstarRouter) => {
     let demoKeypairs = [
@@ -46,10 +56,11 @@ ReactDOM.render(
         <div key="events" style={{ padding:15 }}>
             <h3>events</h3>
             <div>
-                <DebugEmitterView name="params" emitter={router.onParamsChange} />
-                <DebugEmitterView name="workspace" emitter={router.onWorkspaceChange} />
-                <DebugEmitterView name="storage" emitter={router.onStorageChange} />
-                <DebugEmitterView name="syncer" emitter={router.onSyncerChange} />
+                <DebugEmitterView emitter={router.onParamsChange} />
+                <DebugEmitterView emitter={router.onAppChange} />
+                <DebugEmitterView emitter={router.onWorkspaceChange} />
+                <DebugEmitterView emitter={router.onStorageChange} />
+                <DebugEmitterView emitter={router.onSyncerChange} />
             </div>
         </div>,
         <DebugView key="debug" router={router} />,
