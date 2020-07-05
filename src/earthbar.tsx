@@ -1,9 +1,9 @@
 import * as React from 'react';
 import throttle = require('lodash.throttle');
+import { subscribeToMany } from 'earthstar';
 
 import { Thunk } from './types';
 import { notNull, sorted } from './util';
-import { subscribeToMany } from './emitter';
 import { EarthstarRouter } from './router';
 
 let logEarthbar = (...args : any[]) => console.log('Earthbar |', ...args);

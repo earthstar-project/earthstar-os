@@ -1,23 +1,17 @@
 import * as React from 'react';
 import {
-    Document
+    Document,
+    Pub,
+    subscribeToMany,
 } from 'earthstar'
 import throttle = require('lodash.throttle');
 
 import { Thunk } from './types';
-import { subscribeToMany } from './emitter';
 import { EarthstarRouter } from './router';
 
 let logDebug = (...args : any[]) => console.log('DebugView |', ...args);
 
 //================================================================================
-
-// temp, until it's exported from earthstar
-export interface Pub {
-    domain : string;
-    syncState : 'idle' | 'syncing' | 'success' | 'failure';
-    lastSync : number;
-}
 
 let sPage : React.CSSProperties = {
     padding: 15,

@@ -19283,7 +19283,7 @@ exports.pathChars = exports.alphaLower + exports.alphaUpper + exports.digits + "
 },{"buffer":65}],109:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Emitter = void 0;
+exports.subscribeToMany = exports.Emitter = void 0;
 const tslib_1 = require("tslib");
 class Emitter {
     constructor() {
@@ -19314,6 +19314,13 @@ class Emitter {
     }
 }
 exports.Emitter = Emitter;
+exports.subscribeToMany = (emitters, cb) => {
+    // Run the callback when any of the emitters fire.
+    // Return a thunk which unsubscribes from all the emitters.
+    let unsubs = emitters.map(e => e.subscribe(cb));
+    let unsubAll = () => unsubs.forEach(u => u());
+    return unsubAll;
+};
 
 },{"tslib":264}],110:[function(require,module,exports){
 "use strict";
@@ -67934,7 +67941,7 @@ ReactDOM.render([
     React.createElement(debugView_1.DebugView, { key: "debug", router: router }),
 ], document.getElementById('react-slot'));
 
-},{"./debugView":271,"./earthbar":272,"./router":274,"react":225,"react-dom":222}],271:[function(require,module,exports){
+},{"./debugView":271,"./earthbar":272,"./router":273,"react":225,"react-dom":222}],271:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -67958,9 +67965,10 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DebugView = void 0;
 const React = __importStar(require("react"));
+const earthstar_1 = require("earthstar");
 const throttle = require("lodash.throttle");
-const emitter_1 = require("./emitter");
 let logDebug = (...args) => console.log('DebugView |', ...args);
+//================================================================================
 let sPage = {
     padding: 15,
 };
@@ -67972,7 +67980,7 @@ class DebugView extends React.Component {
     componentDidMount() {
         logDebug('subscribing to router changes');
         let router = this.props.router;
-        this.unsub = emitter_1.subscribeToMany([router.onWorkspaceChange, router.onStorageChange, router.onSyncerChange], throttle(() => this.forceUpdate(), 100));
+        this.unsub = earthstar_1.subscribeToMany([router.onWorkspaceChange, router.onStorageChange, router.onSyncerChange], throttle(() => this.forceUpdate(), 100));
     }
     componentWillUnmount() {
         if (this.unsub) {
@@ -68020,7 +68028,7 @@ class DebugView extends React.Component {
 }
 exports.DebugView = DebugView;
 
-},{"./emitter":273,"lodash.throttle":174,"react":225}],272:[function(require,module,exports){
+},{"earthstar":102,"lodash.throttle":174,"react":225}],272:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -68045,8 +68053,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Earthbar = void 0;
 const React = __importStar(require("react"));
 const throttle = require("lodash.throttle");
+const earthstar_1 = require("earthstar");
 const util_1 = require("./util");
-const emitter_1 = require("./emitter");
 let logEarthbar = (...args) => console.log('Earthbar |', ...args);
 //================================================================================
 let cEggplant = '#5e4d76';
@@ -68113,7 +68121,7 @@ class Earthbar extends React.Component {
     componentDidMount() {
         logEarthbar('subscribing to router changes');
         let router = this.props.router;
-        this.unsub = emitter_1.subscribeToMany([router.onWorkspaceChange, router.onSyncerChange], throttle(() => this.forceUpdate(), 100));
+        this.unsub = earthstar_1.subscribeToMany([router.onWorkspaceChange, router.onSyncerChange], throttle(() => this.forceUpdate(), 100));
     }
     componentWillUnmount() {
         if (this.unsub) {
@@ -68170,64 +68178,13 @@ class Earthbar extends React.Component {
 }
 exports.Earthbar = Earthbar;
 
-},{"./emitter":273,"./util":275,"lodash.throttle":174,"react":225}],273:[function(require,module,exports){
-"use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.subscribeToMany = exports.Emitter = void 0;
-class Emitter {
-    constructor() {
-        // Allow subscribing to an event using callbacks.
-        // T is the type of event that will be emitted.
-        // If the callbacks return promises (are async callbacks),
-        // then we will await them here.  In other words, only one
-        // callback will run at a time, assuming the event is
-        // sent with "await send(...)" and not just "send(...)".
-        this._callbacks = [];
-    }
-    subscribe(cb) {
-        this._callbacks.push(cb);
-        // return an unsubscribe function
-        return () => {
-            this._callbacks = this._callbacks.filter(c => c !== cb);
-        };
-    }
-    send(t) {
-        return __awaiter(this, void 0, void 0, function* () {
-            for (let cb of this._callbacks) {
-                let result = cb(t);
-                if (result instanceof Promise) {
-                    yield result;
-                }
-            }
-        });
-    }
-}
-exports.Emitter = Emitter;
-exports.subscribeToMany = (emitters, cb) => {
-    // Run the callback when any of the emitters fire.
-    // Return a thunk which unsubscribes from all the emitters.
-    let unsubs = emitters.map(e => e.subscribe(cb));
-    let unsubAll = () => unsubs.forEach(u => u());
-    return unsubAll;
-};
-
-},{}],274:[function(require,module,exports){
+},{"./util":274,"earthstar":102,"lodash.throttle":174,"react":225}],273:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EarthstarRouter = void 0;
 const deepEqual = require("fast-deep-equal");
 const debounce = require("lodash.debounce");
 const earthstar_1 = require("earthstar");
-const emitter_1 = require("./emitter");
 const workspace_1 = require("./workspace");
 let logRouter = (...args) => console.log('Router |', ...args);
 let getHashParams = () => {
@@ -68263,9 +68220,9 @@ class EarthstarRouter {
         this.unsubWorkspaceStorage = null;
         this.unsubWorkspaceSyncer = null;
         logRouter('constructor');
-        this.onWorkspaceChange = new emitter_1.Emitter();
-        this.onStorageChange = new emitter_1.Emitter();
-        this.onSyncerChange = new emitter_1.Emitter();
+        this.onWorkspaceChange = new earthstar_1.Emitter();
+        this.onStorageChange = new earthstar_1.Emitter();
+        this.onSyncerChange = new earthstar_1.Emitter();
         this.params = getHashParams();
         window.addEventListener('hashchange', () => {
             this._handleHashChange();
@@ -68428,7 +68385,7 @@ class EarthstarRouter {
 }
 exports.EarthstarRouter = EarthstarRouter;
 
-},{"./emitter":273,"./workspace":276,"earthstar":102,"fast-deep-equal":134,"lodash.debounce":173}],275:[function(require,module,exports){
+},{"./workspace":275,"earthstar":102,"fast-deep-equal":134,"lodash.debounce":173}],274:[function(require,module,exports){
 "use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -68456,7 +68413,7 @@ exports.sorted = (items) => {
     return items;
 };
 
-},{}],276:[function(require,module,exports){
+},{}],275:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Workspace = void 0;

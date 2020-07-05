@@ -1,15 +1,15 @@
 import deepEqual = require('fast-deep-equal');
 import debounce = require('lodash.debounce');
 import {
-    WorkspaceAddress,
-    AuthorKeypair,
     AuthorAddress,
+    AuthorKeypair,
+    Emitter,
     StorageMemory,
     ValidatorEs3,
+    WorkspaceAddress,
 } from 'earthstar';
 
 import { Thunk } from './types';
-import { Emitter } from './emitter';
 import { Workspace } from './workspace';
 
 let logRouter = (...args : any[]) => console.log('Router |', ...args);
