@@ -3,7 +3,6 @@ import debounce = require('lodash.debounce');
 import {
     AuthorAddress,
     AuthorKeypair,
-    Emitter,
     StorageMemory,
     ValidatorEs3,
     WorkspaceAddress,
@@ -11,15 +10,17 @@ import {
 
 import { Thunk } from './types';
 import { Workspace } from './workspace';
-import { Hash } from 'crypto';
+import { Emitter } from './emitter';
 
 let logRouter = (...args : any[]) => console.log('Router |', ...args);
+let log = (...args : any[]) => console.log(...args);
 
 //================================================================================
 
 export type HashParams = { [key:string] : string };
 
 let getHashParams = () : HashParams => {
+    log('getHashParams |');
     if (!window.location.hash) { return {}; }
     let params : { [key:string] : string } = {};
     let USParams = new URLSearchParams(window.location.hash.slice(1)); // remove leading '#'
@@ -32,8 +33,9 @@ let setHashParams = (params : HashParams) : void => {
     let newHash = Object.entries(params)
         .map(([k, v]) => `${k}=${v}`)
         .join('&');
-    logRouter('setting hash to', params);
-    logRouter('setting hash to', newHash);
+    log('setHashParams |');
+    log(params);
+    log(newHash);
     window.location.hash = newHash;
 }
 
@@ -66,33 +68,35 @@ export class EarthstarRouter {
     unsubWorkspaceStorage : Thunk | null = null;
     unsubWorkspaceSyncer : Thunk | null = null;
     constructor() {
-        logRouter('constructor');
-        this.onParamsChange = new Emitter<HashParams>();  // change in hash params except for workspace
-        this.onWorkspaceChange = new Emitter<undefined>();  // change in workspace (by hash change or setWorkspace)
-        this.onStorageChange = new Emitter<undefined>();  // change in the data in a workspace's Storage
-        this.onSyncerChange = new Emitter<undefined>();  // change from a workspace's Syncer
+        log('Router.constructor() | starting');
+        log('Router.constructor() | ...creating emitters');
+        this.onParamsChange = new Emitter<HashParams>('params');  // change in hash params except for workspace
+        this.onWorkspaceChange = new Emitter<undefined>('workspace');  // change in workspace (by hash change or setWorkspace)
+        this.onStorageChange = new Emitter<undefined>('storage');  // change in the data in a workspace's Storage
+        this.onSyncerChange = new Emitter<undefined>('syncer');  // change from a workspace's Syncer
 
-        this.onParamsChange.subscribe(() => logRouter('❗️ params change'));
-        this.onWorkspaceChange.subscribe(() => logRouter('❗️ workspace change'));
-        this.onStorageChange.subscribe(() => logRouter('❗️ storage change'));
-        this.onSyncerChange.subscribe(() => logRouter('❗️ syncer change'));
-
+        log('Router.constructor() | ...setting up hash params and listener');
         this.params = getHashParams();
         window.addEventListener('hashchange', () => {   // TEMP HACK
             this._handleHashChange();
         }, false);
 
+        log('Router.constructor() | ...setting up history');
         this.history = {
             workspaceAddresses: [null],
             authorKeypairs: [null],
         }
         this._loadHistoryFromLocalStorage();
 
+        log('Router.constructor() | ...loading the rest');
         this._loadWorkspaceAddressFromHash();
         this._loadAuthorFromHistory();
         this._buildWorkspace();
+        log('Router.constructor() | ...done');
     }
     _buildWorkspace() {
+        log('Router._buildWorkspace() | start');
+        log('Router._buildWorkspace() | ...unsub from previous workspace events');
         // unsubscribe from old workspace events
         if (this.unsubWorkspaceStorage) { this.unsubWorkspaceStorage(); }
         if (this.unsubWorkspaceSyncer) { this.unsubWorkspaceSyncer(); }
@@ -100,8 +104,10 @@ export class EarthstarRouter {
         this.unsubWorkspaceSyncer = null;
 
         if (this.workspaceAddress === null) {
+            log('Router._buildWorkspace() | ...set workspace to null');
             this.workspace = null;
         } else {
+            log('Router._buildWorkspace() | ...instantiate StorageMemory, Workspace, etc');
             let validator = ValidatorEs3;
             let storage = new StorageMemory([ValidatorEs3], this.workspaceAddress);
             this.workspace = new Workspace(storage, this.authorKeypair);
@@ -127,23 +133,49 @@ export class EarthstarRouter {
             // END LOCALSTORAGE HACK
 
             // pipe workspace's change events through to the router's change events
+            log('Router._buildWorkspace() | ...hook up new workspace events to our own events (onStorage, onSyncer)');
             this.unsubWorkspaceStorage = this.workspace.storage.onChange.subscribe(() => this.onStorageChange.send(undefined));
             this.unsubWorkspaceSyncer = this.workspace.syncer.onChange.subscribe(() => this.onSyncerChange.send(undefined));
         }
+        log('Router._buildWorkspace() | ...done');
     }
     _handleHashChange() {
-        logRouter('_handleHashChange');
+        log('Router._handleHashChange() | start');
+        let oldParams = this.params;
         let newParams = getHashParams();
-        if (this.params.workspace !== newParams.workspace) {
-            logRouter('...workspace changed via hash');
+        log('Router._handleHashChange() | ', oldParams, newParams);
+
+        // nop change
+        if (deepEqual(oldParams, newParams)) {
+            log('Router._handleHashChange() | ...no params changed at all.  returning.');
+            return;
+        }
+
+        // check for workspace change
+        if (oldParams.workspace !== newParams.workspace) {
+            log(`Router._handleHashChange() | ...workspace changed via hash, from ${oldParams.workspace} to ${newParams.workspace}`);
             this._loadWorkspaceAddressFromHash();
             this._buildWorkspace();
+            log('Router._handleHashChange() | ...sending onWorkspaceChange');
             this.onWorkspaceChange.send(undefined);
-        } else if (!deepEqual(newParams, this.params)) {
-            logRouter('...hash params changed (except for workspace)');
-            this.params = newParams;
-            this.onParamsChange.send(newParams);
+        } else {
+            log('Router._handleHashChange() | ...workspace did not change in params');
         }
+        // check for any other change besides workspace
+        let oldWithoutWs = {...this.params, workspace: null};
+        let newWithoutWs = {...newParams, workspace: null};
+        if (!deepEqual(oldWithoutWs, newWithoutWs)) {
+            log('Router._handleHashChange() | ...hash params changed (except for workspace)');
+            log(oldWithoutWs);
+            log(newWithoutWs);
+            log('Router._handleHashChange() | ...sending onParamsChange');
+            this.onParamsChange.send(newParams);
+        } else {
+            log('Router._handleHashChange() | ...no non-workspace params changed');
+        }
+        // save new params
+        this.params = newParams;
+        log('Router._handleHashChange() | ...done');
     }
     _loadHistoryFromLocalStorage() {
         let raw = localStorage.getItem(LOGIN_HISTORY_LOCALSTORAGE_KEY);
@@ -153,55 +185,60 @@ export class EarthstarRouter {
             } catch (e) {
             }
         }
-        logRouter('...history:', this.history);
+        log('Router._loadHistoryFromLocalStorage() | done: ', this.history);
     }
     _loadWorkspaceAddressFromHash() {
-        logRouter('_loadWorkspaceAddressFromHash');
+        log('Router._loadWorkspaceAddressFromHash() | start');
         this.workspaceAddress = getHashParams().workspace || null;
         if (this.workspaceAddress) {
             // restore '+'
             this.workspaceAddress = this.workspaceAddress.trim();
             if (!this.workspaceAddress.startsWith('+')) { this.workspaceAddress = '+' + this.workspaceAddress; }
             // save to front of history workspace list (as most recent)
+            log('Router._loadWorkspaceAddressFromHash() | ...update history');
             this.history.workspaceAddresses = this.history.workspaceAddresses.filter(w => w !== this.workspaceAddress);
             this.history.workspaceAddresses.unshift(this.workspaceAddress);
             this._saveHistory();
         }
-        logRouter('...loaded workspace from hash:', this.workspaceAddress);
+        log('Router._loadWorkspaceAddressFromHash() | ...done: ', this.workspaceAddress);
     }
     _loadAuthorFromHistory() {
         if (this.history.authorKeypairs.length == 0) {
             this.history.authorKeypairs = [null];
         }
         this.authorKeypair = this.history.authorKeypairs[0];
-        logRouter('...loaded author from history: ', this.authorKeypair);
+        log('Router._loadAuthorFromHistory() | done: ', this.authorKeypair);
     }
     _saveHistory() {
-        logRouter('        saving history');
         localStorage.setItem(LOGIN_HISTORY_LOCALSTORAGE_KEY, JSON.stringify(this.history));
+        log('Router._saveHistory() | done');
     }
     setWorkspace(workspaceAddress : WorkspaceAddress | null) {
-        logRouter('setWorkspace(' + workspaceAddress + ')');
+        log('Router.setWorkspace(' + workspaceAddress + ') | start');
         this.workspaceAddress = workspaceAddress;
         // update history to move workspace to the beginning of the list (most recent)
-        logRouter('...updating history');
+        log('Router.setWorkspace() | ...updating and saving history');
         this.history.workspaceAddresses = this.history.workspaceAddresses.filter(w => w !== workspaceAddress);
         this.history.workspaceAddresses.unshift(workspaceAddress);
         this._saveHistory();
         // rebuild workspace
+        log('Router.setWorkspace() | ...build new workspace');
         this._buildWorkspace();
         // update hash params.
         if (workspaceAddress === null) {
-            logRouter('...removing workspace from hash params');
+            log('Router.setWorkspace() | ...remove workspace from hash params');
             delete this.params.workspace;
         } else {
-            logRouter('...updating workspace in hash params');
+            log('Router.setWorkspace() | ...set workspace from hash params');
             this.params.workspace = workspaceAddress.slice(1);  // remove '+'
         }
         setHashParams(this.params);
+        log('Router.setWorkspace() | ...send onWorkspaceChange');
         this.onWorkspaceChange.send(undefined);
+        log('Router.setWorkspace() | ...done');
     }
     setAuthorAddress(authorAddress : AuthorAddress | null) {
+        log('Router.setAuthorAddress() | start', authorAddress);
         // a helper for when you only know the address, not the whole keypair
         if (authorAddress === null) {
             this.setAuthorKeypair(null);
@@ -214,21 +251,25 @@ export class EarthstarRouter {
             }
         }
         console.warn('setAuthorAddress: could not find keypair with address = ', JSON.stringify(authorAddress));
+        log('Router.setAuthorAddress() | ...done');
     }
     setAuthorKeypair(authorKeypair : AuthorKeypair | null) { 
-        logRouter('setAuthorKeypair:', authorKeypair);
+        log('Router.setAuthorKeypair() | start', authorKeypair);
         this.authorKeypair = authorKeypair;
 
         // update history to move author to the beginning of the list (most recent)
         // note that the authorKeypair list includes a null representing guest mode
-        logRouter('...updating history');
+        log('Router.setAuthorKeypair() | ...update and save history');
         this.history.authorKeypairs = this.history.authorKeypairs.filter(a => !deepEqual(a, authorKeypair));
         this.history.authorKeypairs.unshift(authorKeypair);
         this._saveHistory();
 
         // rebuild workspace
+        log('Router.setAuthorKeypair() | ...build workspace');
         this._buildWorkspace();
 
+        log('Router.setAuthorKeypair() | ...send onWorkspaceChange');
         this.onWorkspaceChange.send(undefined);
+        log('Router.setAuthorKeypair() | ...done');
     }
 }

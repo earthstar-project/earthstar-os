@@ -3,7 +3,7 @@ import * as ReactDOM from 'react-dom';
 
 import { EarthstarRouter } from './router';
 import { Earthbar } from './earthbar';
-import { DebugView } from './debugView';
+import { DebugView, DebugEmitterView } from './debugView';
 
 //================================================================================
 // MAIN
@@ -43,6 +43,15 @@ let addDemoContent = (router : EarthstarRouter) => {
 ReactDOM.render(
     [
         <Earthbar key="earthbar" router={router} />,
+        <div key="events" style={{ padding:15 }}>
+            <h3>events</h3>
+            <div>
+                <DebugEmitterView name="params" emitter={router.onParamsChange} />
+                <DebugEmitterView name="workspace" emitter={router.onWorkspaceChange} />
+                <DebugEmitterView name="storage" emitter={router.onStorageChange} />
+                <DebugEmitterView name="syncer" emitter={router.onSyncerChange} />
+            </div>
+        </div>,
         <DebugView key="debug" router={router} />,
     ],
     document.getElementById('react-slot')

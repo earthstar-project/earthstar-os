@@ -67938,10 +67938,17 @@ let addDemoContent = (router) => {
 //addDemoContent(router);
 ReactDOM.render([
     React.createElement(earthbar_1.Earthbar, { key: "earthbar", router: router }),
+    React.createElement("div", { key: "events", style: { padding: 15 } },
+        React.createElement("h3", null, "events"),
+        React.createElement("div", null,
+            React.createElement(debugView_1.DebugEmitterView, { name: "params", emitter: router.onParamsChange }),
+            React.createElement(debugView_1.DebugEmitterView, { name: "workspace", emitter: router.onWorkspaceChange }),
+            React.createElement(debugView_1.DebugEmitterView, { name: "storage", emitter: router.onStorageChange }),
+            React.createElement(debugView_1.DebugEmitterView, { name: "syncer", emitter: router.onSyncerChange }))),
     React.createElement(debugView_1.DebugView, { key: "debug", router: router }),
 ], document.getElementById('react-slot'));
 
-},{"./debugView":271,"./earthbar":272,"./router":273,"react":225,"react-dom":222}],271:[function(require,module,exports){
+},{"./debugView":271,"./earthbar":272,"./router":274,"react":225,"react-dom":222}],271:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -67974,12 +67981,12 @@ class DebugEmitterView extends React.Component {
     constructor() {
         super(...arguments);
         this.unsub = null;
-        this.colors = ['white', 'white', 'white', 'white'];
+        this.colors = ['white', 'white', 'white', 'white', 'white', 'white', 'white'];
     }
     componentDidMount() {
-        logDebugEmitter('subscribing to router changes');
+        logDebugEmitter('subscribing to router changes for ' + this.props.name);
         this.unsub = this.props.emitter.subscribe(() => {
-            logDebugEmitter(this.props.name);
+            logDebugEmitter('rendering because of an event: ' + this.props.name);
             this.colors.unshift(util_1.randomColor());
             this.colors.pop();
             this.forceUpdate();
@@ -67999,10 +68006,10 @@ class DebugEmitterView extends React.Component {
                 marginRight: 10,
             } },
             this.props.name,
-            this.colors.map(c => React.createElement("div", { style: {
+            this.colors.map((c, ii) => React.createElement("div", { key: ii, style: {
                     display: 'inline-block',
-                    height: '1em',
-                    width: '1em',
+                    height: '1.2em',
+                    width: '0.5em',
                     backgroundColor: c,
                     border: '1px solid black',
                 } })));
@@ -68016,6 +68023,7 @@ class DebugView extends React.Component {
     constructor() {
         super(...arguments);
         this.unsub = null;
+        this.colors = ['white', 'white', 'white', 'white', 'white', 'white', 'white'];
     }
     componentDidMount() {
         logDebug('subscribing to router changes');
@@ -68025,7 +68033,11 @@ class DebugView extends React.Component {
             router.onWorkspaceChange,
             router.onStorageChange,
             router.onSyncerChange
-        ], throttle(() => this.forceUpdate(), 100));
+        ], throttle(() => {
+            this.colors.unshift(util_1.randomColor());
+            this.colors.pop();
+            this.forceUpdate();
+        }, 100));
     }
     componentWillUnmount() {
         if (this.unsub) {
@@ -68040,12 +68052,21 @@ class DebugView extends React.Component {
         let docs = workspace === null ? [] : workspace.storage.documents({ includeHistory: false });
         let pubs = workspace === null ? [] : workspace.syncer.state.pubs;
         return React.createElement("div", { style: sPage },
-            React.createElement("h3", null, "events"),
-            React.createElement("div", null,
-                React.createElement(DebugEmitterView, { name: "params", emitter: router.onParamsChange }),
-                React.createElement(DebugEmitterView, { name: "workspace", emitter: router.onWorkspaceChange }),
-                React.createElement(DebugEmitterView, { name: "storage", emitter: router.onStorageChange }),
-                React.createElement(DebugEmitterView, { name: "syncer", emitter: router.onSyncerChange })),
+            React.createElement("div", { style: {
+                    backgroundColor: this.colors[0],
+                    display: 'inline-block',
+                    padding: 10,
+                    borderRadius: 3,
+                    marginRight: 10,
+                } },
+                "DebugView renders",
+                this.colors.map((c, ii) => React.createElement("div", { key: ii, style: {
+                        display: 'inline-block',
+                        height: '1.2em',
+                        width: '0.5em',
+                        backgroundColor: c,
+                        border: '1px solid black',
+                    } }))),
             React.createElement("h3", null, "params"),
             React.createElement("pre", null, JSON.stringify(router.params, null, 4)),
             React.createElement("h3", null, "workspace"),
@@ -68079,7 +68100,7 @@ class DebugView extends React.Component {
 }
 exports.DebugView = DebugView;
 
-},{"./util":274,"earthstar":102,"lodash.throttle":174,"react":225}],272:[function(require,module,exports){
+},{"./util":275,"earthstar":102,"lodash.throttle":174,"react":225}],272:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -68232,7 +68253,68 @@ class Earthbar extends React.Component {
 }
 exports.Earthbar = Earthbar;
 
-},{"./util":274,"earthstar":102,"lodash.throttle":174,"react":225}],273:[function(require,module,exports){
+},{"./util":275,"earthstar":102,"lodash.throttle":174,"react":225}],273:[function(require,module,exports){
+(function (process){
+"use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.subscribeToMany = exports.Emitter = void 0;
+let log = (...args) => console.log('Emitter |', ...args);
+class Emitter {
+    constructor(name) {
+        // Allow subscribing to an event using callbacks.
+        // T is the type of event that will be emitted.
+        // If the callbacks return promises (are async callbacks),
+        // then we will await them here.  In other words, only one
+        // callback will run at a time, assuming the event is
+        // sent with "await send(...)" and not just "send(...)".
+        this._callbacks = [];
+        this.name = name;
+    }
+    subscribe(cb) {
+        log('📫 subscribe to ' + this.name);
+        this._callbacks.push(cb);
+        // return an unsubscribe function
+        return () => {
+            this._callbacks = this._callbacks.filter(c => c !== cb);
+        };
+    }
+    send(t) {
+        return __awaiter(this, void 0, void 0, function* () {
+            log('-->📪 ️send to ' + this.name);
+            // do at the end of the current tick, instead of immediately
+            process.nextTick(() => __awaiter(this, void 0, void 0, function* () {
+                log('📪--> firing callbacks from ' + this.name);
+                for (let cb of this._callbacks) {
+                    let result = cb(t);
+                    if (result instanceof Promise) {
+                        yield result;
+                    }
+                }
+                log('📪 done firing callbacks from ' + this.name);
+            }));
+        });
+    }
+}
+exports.Emitter = Emitter;
+exports.subscribeToMany = (emitters, cb) => {
+    // Run the callback when any of the emitters fire.
+    // Return a thunk which unsubscribes from all the emitters.
+    let unsubs = emitters.map(e => e.subscribe(cb));
+    let unsubAll = () => unsubs.forEach(u => u());
+    return unsubAll;
+};
+
+}).call(this,require('_process'))
+},{"_process":208}],274:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EarthstarRouter = void 0;
@@ -68240,8 +68322,11 @@ const deepEqual = require("fast-deep-equal");
 const debounce = require("lodash.debounce");
 const earthstar_1 = require("earthstar");
 const workspace_1 = require("./workspace");
+const emitter_1 = require("./emitter");
 let logRouter = (...args) => console.log('Router |', ...args);
+let log = (...args) => console.log(...args);
 let getHashParams = () => {
+    log('getHashParams |');
     if (!window.location.hash) {
         return {};
     }
@@ -68256,8 +68341,9 @@ let setHashParams = (params) => {
     let newHash = Object.entries(params)
         .map(([k, v]) => `${k}=${v}`)
         .join('&');
-    logRouter('setting hash to', params);
-    logRouter('setting hash to', newHash);
+    log('setHashParams |');
+    log(params);
+    log(newHash);
     window.location.hash = newHash;
 };
 //================================================================================
@@ -68273,29 +68359,32 @@ class EarthstarRouter {
         this.workspace = null;
         this.unsubWorkspaceStorage = null;
         this.unsubWorkspaceSyncer = null;
-        logRouter('constructor');
-        this.onParamsChange = new earthstar_1.Emitter(); // change in hash params except for workspace
-        this.onWorkspaceChange = new earthstar_1.Emitter(); // change in workspace (by hash change or setWorkspace)
-        this.onStorageChange = new earthstar_1.Emitter(); // change in the data in a workspace's Storage
-        this.onSyncerChange = new earthstar_1.Emitter(); // change from a workspace's Syncer
-        this.onParamsChange.subscribe(() => logRouter('❗️ params change'));
-        this.onWorkspaceChange.subscribe(() => logRouter('❗️ workspace change'));
-        this.onStorageChange.subscribe(() => logRouter('❗️ storage change'));
-        this.onSyncerChange.subscribe(() => logRouter('❗️ syncer change'));
+        log('Router.constructor() | starting');
+        log('Router.constructor() | ...creating emitters');
+        this.onParamsChange = new emitter_1.Emitter('params'); // change in hash params except for workspace
+        this.onWorkspaceChange = new emitter_1.Emitter('workspace'); // change in workspace (by hash change or setWorkspace)
+        this.onStorageChange = new emitter_1.Emitter('storage'); // change in the data in a workspace's Storage
+        this.onSyncerChange = new emitter_1.Emitter('syncer'); // change from a workspace's Syncer
+        log('Router.constructor() | ...setting up hash params and listener');
         this.params = getHashParams();
         window.addEventListener('hashchange', () => {
             this._handleHashChange();
         }, false);
+        log('Router.constructor() | ...setting up history');
         this.history = {
             workspaceAddresses: [null],
             authorKeypairs: [null],
         };
         this._loadHistoryFromLocalStorage();
+        log('Router.constructor() | ...loading the rest');
         this._loadWorkspaceAddressFromHash();
         this._loadAuthorFromHistory();
         this._buildWorkspace();
+        log('Router.constructor() | ...done');
     }
     _buildWorkspace() {
+        log('Router._buildWorkspace() | start');
+        log('Router._buildWorkspace() | ...unsub from previous workspace events');
         // unsubscribe from old workspace events
         if (this.unsubWorkspaceStorage) {
             this.unsubWorkspaceStorage();
@@ -68306,9 +68395,11 @@ class EarthstarRouter {
         this.unsubWorkspaceStorage = null;
         this.unsubWorkspaceSyncer = null;
         if (this.workspaceAddress === null) {
+            log('Router._buildWorkspace() | ...set workspace to null');
             this.workspace = null;
         }
         else {
+            log('Router._buildWorkspace() | ...instantiate StorageMemory, Workspace, etc');
             let validator = earthstar_1.ValidatorEs3;
             let storage = new earthstar_1.StorageMemory([earthstar_1.ValidatorEs3], this.workspaceAddress);
             this.workspace = new workspace_1.Workspace(storage, this.authorKeypair);
@@ -68331,24 +68422,49 @@ class EarthstarRouter {
             storage.onChange.subscribe(debouncedSave);
             // END LOCALSTORAGE HACK
             // pipe workspace's change events through to the router's change events
+            log('Router._buildWorkspace() | ...hook up new workspace events to our own events (onStorage, onSyncer)');
             this.unsubWorkspaceStorage = this.workspace.storage.onChange.subscribe(() => this.onStorageChange.send(undefined));
             this.unsubWorkspaceSyncer = this.workspace.syncer.onChange.subscribe(() => this.onSyncerChange.send(undefined));
         }
+        log('Router._buildWorkspace() | ...done');
     }
     _handleHashChange() {
-        logRouter('_handleHashChange');
+        log('Router._handleHashChange() | start');
+        let oldParams = this.params;
         let newParams = getHashParams();
-        if (this.params.workspace !== newParams.workspace) {
-            logRouter('...workspace changed via hash');
+        log('Router._handleHashChange() | ', oldParams, newParams);
+        // nop change
+        if (deepEqual(oldParams, newParams)) {
+            log('Router._handleHashChange() | ...no params changed at all.  returning.');
+            return;
+        }
+        // check for workspace change
+        if (oldParams.workspace !== newParams.workspace) {
+            log(`Router._handleHashChange() | ...workspace changed via hash, from ${oldParams.workspace} to ${newParams.workspace}`);
             this._loadWorkspaceAddressFromHash();
             this._buildWorkspace();
+            log('Router._handleHashChange() | ...sending onWorkspaceChange');
             this.onWorkspaceChange.send(undefined);
         }
-        else if (!deepEqual(newParams, this.params)) {
-            logRouter('...hash params changed (except for workspace)');
-            this.params = newParams;
+        else {
+            log('Router._handleHashChange() | ...workspace did not change in params');
+        }
+        // check for any other change besides workspace
+        let oldWithoutWs = Object.assign(Object.assign({}, this.params), { workspace: null });
+        let newWithoutWs = Object.assign(Object.assign({}, newParams), { workspace: null });
+        if (!deepEqual(oldWithoutWs, newWithoutWs)) {
+            log('Router._handleHashChange() | ...hash params changed (except for workspace)');
+            log(oldWithoutWs);
+            log(newWithoutWs);
+            log('Router._handleHashChange() | ...sending onParamsChange');
             this.onParamsChange.send(newParams);
         }
+        else {
+            log('Router._handleHashChange() | ...no non-workspace params changed');
+        }
+        // save new params
+        this.params = newParams;
+        log('Router._handleHashChange() | ...done');
     }
     _loadHistoryFromLocalStorage() {
         let raw = localStorage.getItem(LOGIN_HISTORY_LOCALSTORAGE_KEY);
@@ -68359,10 +68475,10 @@ class EarthstarRouter {
             catch (e) {
             }
         }
-        logRouter('...history:', this.history);
+        log('Router._loadHistoryFromLocalStorage() | done: ', this.history);
     }
     _loadWorkspaceAddressFromHash() {
-        logRouter('_loadWorkspaceAddressFromHash');
+        log('Router._loadWorkspaceAddressFromHash() | start');
         this.workspaceAddress = getHashParams().workspace || null;
         if (this.workspaceAddress) {
             // restore '+'
@@ -68371,46 +68487,51 @@ class EarthstarRouter {
                 this.workspaceAddress = '+' + this.workspaceAddress;
             }
             // save to front of history workspace list (as most recent)
+            log('Router._loadWorkspaceAddressFromHash() | ...update history');
             this.history.workspaceAddresses = this.history.workspaceAddresses.filter(w => w !== this.workspaceAddress);
             this.history.workspaceAddresses.unshift(this.workspaceAddress);
             this._saveHistory();
         }
-        logRouter('...loaded workspace from hash:', this.workspaceAddress);
+        log('Router._loadWorkspaceAddressFromHash() | ...done: ', this.workspaceAddress);
     }
     _loadAuthorFromHistory() {
         if (this.history.authorKeypairs.length == 0) {
             this.history.authorKeypairs = [null];
         }
         this.authorKeypair = this.history.authorKeypairs[0];
-        logRouter('...loaded author from history: ', this.authorKeypair);
+        log('Router._loadAuthorFromHistory() | done: ', this.authorKeypair);
     }
     _saveHistory() {
-        logRouter('        saving history');
         localStorage.setItem(LOGIN_HISTORY_LOCALSTORAGE_KEY, JSON.stringify(this.history));
+        log('Router._saveHistory() | done');
     }
     setWorkspace(workspaceAddress) {
-        logRouter('setWorkspace(' + workspaceAddress + ')');
+        log('Router.setWorkspace(' + workspaceAddress + ') | start');
         this.workspaceAddress = workspaceAddress;
         // update history to move workspace to the beginning of the list (most recent)
-        logRouter('...updating history');
+        log('Router.setWorkspace() | ...updating and saving history');
         this.history.workspaceAddresses = this.history.workspaceAddresses.filter(w => w !== workspaceAddress);
         this.history.workspaceAddresses.unshift(workspaceAddress);
         this._saveHistory();
         // rebuild workspace
+        log('Router.setWorkspace() | ...build new workspace');
         this._buildWorkspace();
         // update hash params.
         if (workspaceAddress === null) {
-            logRouter('...removing workspace from hash params');
+            log('Router.setWorkspace() | ...remove workspace from hash params');
             delete this.params.workspace;
         }
         else {
-            logRouter('...updating workspace in hash params');
+            log('Router.setWorkspace() | ...set workspace from hash params');
             this.params.workspace = workspaceAddress.slice(1); // remove '+'
         }
         setHashParams(this.params);
+        log('Router.setWorkspace() | ...send onWorkspaceChange');
         this.onWorkspaceChange.send(undefined);
+        log('Router.setWorkspace() | ...done');
     }
     setAuthorAddress(authorAddress) {
+        log('Router.setAuthorAddress() | start', authorAddress);
         // a helper for when you only know the address, not the whole keypair
         if (authorAddress === null) {
             this.setAuthorKeypair(null);
@@ -68423,24 +68544,28 @@ class EarthstarRouter {
             }
         }
         console.warn('setAuthorAddress: could not find keypair with address = ', JSON.stringify(authorAddress));
+        log('Router.setAuthorAddress() | ...done');
     }
     setAuthorKeypair(authorKeypair) {
-        logRouter('setAuthorKeypair:', authorKeypair);
+        log('Router.setAuthorKeypair() | start', authorKeypair);
         this.authorKeypair = authorKeypair;
         // update history to move author to the beginning of the list (most recent)
         // note that the authorKeypair list includes a null representing guest mode
-        logRouter('...updating history');
+        log('Router.setAuthorKeypair() | ...update and save history');
         this.history.authorKeypairs = this.history.authorKeypairs.filter(a => !deepEqual(a, authorKeypair));
         this.history.authorKeypairs.unshift(authorKeypair);
         this._saveHistory();
         // rebuild workspace
+        log('Router.setAuthorKeypair() | ...build workspace');
         this._buildWorkspace();
+        log('Router.setAuthorKeypair() | ...send onWorkspaceChange');
         this.onWorkspaceChange.send(undefined);
+        log('Router.setAuthorKeypair() | ...done');
     }
 }
 exports.EarthstarRouter = EarthstarRouter;
 
-},{"./workspace":275,"earthstar":102,"fast-deep-equal":134,"lodash.debounce":173}],274:[function(require,module,exports){
+},{"./emitter":273,"./workspace":276,"earthstar":102,"fast-deep-equal":134,"lodash.debounce":173}],275:[function(require,module,exports){
 "use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -68477,7 +68602,7 @@ exports.randomColor = () => {
     return `rgb(${r},${g},${b})`;
 };
 
-},{}],275:[function(require,module,exports){
+},{}],276:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Workspace = void 0;

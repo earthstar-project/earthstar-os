@@ -27,9 +27,9 @@ export class DebugEmitterView extends React.Component<DebugEmitterViewProps, any
     unsub : Thunk | null = null;
     colors : string[] = ['white', 'white', 'white', 'white', 'white', 'white', 'white'];
     componentDidMount() {
-        logDebugEmitter('subscribing to router changes');
+        logDebugEmitter('subscribing to router changes for ' + this.props.name);
         this.unsub = this.props.emitter.subscribe(() => {
-            logDebugEmitter(this.props.name);
+            logDebugEmitter('rendering because of an event: ' + this.props.name);
             this.colors.unshift(randomColor());
             this.colors.pop();
             this.forceUpdate();
@@ -47,7 +47,7 @@ export class DebugEmitterView extends React.Component<DebugEmitterViewProps, any
                 marginRight: 10,
             }}>
             {this.props.name}
-            {this.colors.map(c => <div style={{
+            {this.colors.map((c, ii) => <div key={ii} style={{
                 display: 'inline-block',
                 height: '1.2em',
                 width: '0.5em',
@@ -66,6 +66,7 @@ interface DebugViewProps {
 }
 export class DebugView extends React.Component<DebugViewProps, any> {
     unsub : Thunk | null = null;
+    colors : string[] = ['white', 'white', 'white', 'white', 'white', 'white', 'white'];
     componentDidMount() {
         logDebug('subscribing to router changes');
         let router = this.props.router;
@@ -76,7 +77,11 @@ export class DebugView extends React.Component<DebugViewProps, any> {
                 router.onStorageChange,
                 router.onSyncerChange
             ],
-            throttle(() => this.forceUpdate(), 100)
+            throttle(() => {
+                this.colors.unshift(randomColor());
+                this.colors.pop();
+                this.forceUpdate();
+            }, 100)
         );
     }
     componentWillUnmount() {
@@ -89,12 +94,21 @@ export class DebugView extends React.Component<DebugViewProps, any> {
         let docs : Document[] = workspace === null ? [] : workspace.storage.documents({ includeHistory: false });
         let pubs : Pub[] = workspace === null ? [] : workspace.syncer.state.pubs;
         return <div style={sPage}>
-            <h3>events</h3>
-            <div>
-                <DebugEmitterView name="params" emitter={router.onParamsChange} />
-                <DebugEmitterView name="workspace" emitter={router.onWorkspaceChange} />
-                <DebugEmitterView name="storage" emitter={router.onStorageChange} />
-                <DebugEmitterView name="syncer" emitter={router.onSyncerChange} />
+            <div style={{
+                    backgroundColor: this.colors[0],
+                    display: 'inline-block',
+                    padding: 10,
+                    borderRadius: 3,
+                    marginRight: 10,
+                }}>
+                DebugView renders
+                {this.colors.map((c, ii) => <div key={ii} style={{
+                    display: 'inline-block',
+                    height: '1.2em',
+                    width: '0.5em',
+                    backgroundColor: c,
+                    border: '1px solid black',
+                }}></div>)}
             </div>
             <h3>params</h3>
             <pre>{JSON.stringify(router.params, null, 4)}</pre>
