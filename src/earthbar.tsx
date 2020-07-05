@@ -5,6 +5,7 @@ import { subscribeToMany } from 'earthstar';
 import { Thunk } from './types';
 import { notNull, sorted } from './util';
 import { EarthstarRouter } from './router';
+import { RainbowBug } from './rainbowBug';
 
 let logEarthbar = (...args : any[]) => console.log('Earthbar |', ...args);
 
@@ -82,7 +83,7 @@ export class Earthbar extends React.Component<EarthbarProps, any> {
                 router.onWorkspaceChange,  // ?
                 router.onSyncerChange  // to update Sync button state
             ],
-            throttle(() => this.forceUpdate(), 100)
+            throttle(() => this.forceUpdate(), 200)
         );
     }
     componentWillUnmount() {
@@ -106,7 +107,10 @@ export class Earthbar extends React.Component<EarthbarProps, any> {
         if (isSyncing) { syncButtonText = 'Syncing'; }
 
         return <div style={sBar}>
-            <div style={sBarItem}>
+            <div style={{position: 'absolute', top: 0, left: 0}}>
+                <RainbowBug />
+            </div>
+            <div style={{...sBarItem, zIndex: 1}}>
                 <img style={sLogo} src='static/img/earthstar-logo-small.png' />
             </div>
             <div style={sBarItem}>

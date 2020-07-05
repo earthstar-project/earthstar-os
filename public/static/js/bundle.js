@@ -67948,7 +67948,7 @@ ReactDOM.render([
     React.createElement(debugView_1.DebugView, { key: "debug", router: router }),
 ], document.getElementById('react-slot'));
 
-},{"./debugView":271,"./earthbar":272,"./router":274,"react":225,"react-dom":222}],271:[function(require,module,exports){
+},{"./debugView":271,"./earthbar":272,"./router":275,"react":225,"react-dom":222}],271:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -67975,6 +67975,7 @@ const React = __importStar(require("react"));
 const earthstar_1 = require("earthstar");
 const throttle = require("lodash.throttle");
 const util_1 = require("./util");
+const rainbowBug_1 = require("./rainbowBug");
 let logDebug = (...args) => console.log('DebugView |', ...args);
 let logDebugEmitter = (...args) => console.log('DebugEmitterView |', ...args);
 class DebugEmitterView extends React.Component {
@@ -67998,21 +67999,7 @@ class DebugEmitterView extends React.Component {
         }
     }
     render() {
-        return React.createElement("div", { style: {
-                backgroundColor: this.colors[0],
-                display: 'inline-block',
-                padding: 10,
-                borderRadius: 3,
-                marginRight: 10,
-            } },
-            this.props.name,
-            this.colors.map((c, ii) => React.createElement("div", { key: ii, style: {
-                    display: 'inline-block',
-                    height: '1.2em',
-                    width: '0.5em',
-                    backgroundColor: c,
-                    border: '1px solid black',
-                } })));
+        return React.createElement(rainbowBug_1.RainbowBug, { name: this.props.name });
     }
 }
 exports.DebugEmitterView = DebugEmitterView;
@@ -68023,7 +68010,6 @@ class DebugView extends React.Component {
     constructor() {
         super(...arguments);
         this.unsub = null;
-        this.colors = ['white', 'white', 'white', 'white', 'white', 'white', 'white'];
     }
     componentDidMount() {
         logDebug('subscribing to router changes');
@@ -68033,11 +68019,7 @@ class DebugView extends React.Component {
             router.onWorkspaceChange,
             router.onStorageChange,
             router.onSyncerChange
-        ], throttle(() => {
-            this.colors.unshift(util_1.randomColor());
-            this.colors.pop();
-            this.forceUpdate();
-        }, 100));
+        ], throttle(() => this.forceUpdate(), 200));
     }
     componentWillUnmount() {
         if (this.unsub) {
@@ -68052,21 +68034,8 @@ class DebugView extends React.Component {
         let docs = workspace === null ? [] : workspace.storage.documents({ includeHistory: false });
         let pubs = workspace === null ? [] : workspace.syncer.state.pubs;
         return React.createElement("div", { style: sPage },
-            React.createElement("div", { style: {
-                    backgroundColor: this.colors[0],
-                    display: 'inline-block',
-                    padding: 10,
-                    borderRadius: 3,
-                    marginRight: 10,
-                } },
-                "DebugView renders",
-                this.colors.map((c, ii) => React.createElement("div", { key: ii, style: {
-                        display: 'inline-block',
-                        height: '1.2em',
-                        width: '0.5em',
-                        backgroundColor: c,
-                        border: '1px solid black',
-                    } }))),
+            React.createElement("div", null,
+                React.createElement(rainbowBug_1.RainbowBug, { name: "DebugView" })),
             React.createElement("h3", null, "params"),
             React.createElement("pre", null, JSON.stringify(router.params, null, 4)),
             React.createElement("h3", null, "workspace"),
@@ -68100,7 +68069,7 @@ class DebugView extends React.Component {
 }
 exports.DebugView = DebugView;
 
-},{"./util":275,"earthstar":102,"lodash.throttle":174,"react":225}],272:[function(require,module,exports){
+},{"./rainbowBug":274,"./util":276,"earthstar":102,"lodash.throttle":174,"react":225}],272:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -68127,6 +68096,7 @@ const React = __importStar(require("react"));
 const throttle = require("lodash.throttle");
 const earthstar_1 = require("earthstar");
 const util_1 = require("./util");
+const rainbowBug_1 = require("./rainbowBug");
 let logEarthbar = (...args) => console.log('Earthbar |', ...args);
 //================================================================================
 let cEggplant = '#5e4d76';
@@ -68196,7 +68166,7 @@ class Earthbar extends React.Component {
         this.unsub = earthstar_1.subscribeToMany([
             router.onWorkspaceChange,
             router.onSyncerChange // to update Sync button state
-        ], throttle(() => this.forceUpdate(), 100));
+        ], throttle(() => this.forceUpdate(), 200));
     }
     componentWillUnmount() {
         if (this.unsub) {
@@ -68222,7 +68192,9 @@ class Earthbar extends React.Component {
             syncButtonText = 'Syncing';
         }
         return React.createElement("div", { style: sBar },
-            React.createElement("div", { style: sBarItem },
+            React.createElement("div", { style: { position: 'absolute', top: 0, left: 0 } },
+                React.createElement(rainbowBug_1.RainbowBug, null)),
+            React.createElement("div", { style: Object.assign(Object.assign({}, sBarItem), { zIndex: 1 }) },
                 React.createElement("img", { style: sLogo, src: 'static/img/earthstar-logo-small.png' })),
             React.createElement("div", { style: sBarItem },
                 React.createElement("label", null,
@@ -68253,7 +68225,7 @@ class Earthbar extends React.Component {
 }
 exports.Earthbar = Earthbar;
 
-},{"./util":275,"earthstar":102,"lodash.throttle":174,"react":225}],273:[function(require,module,exports){
+},{"./rainbowBug":274,"./util":276,"earthstar":102,"lodash.throttle":174,"react":225}],273:[function(require,module,exports){
 (function (process){
 "use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
@@ -68315,6 +68287,58 @@ exports.subscribeToMany = (emitters, cb) => {
 
 }).call(this,require('_process'))
 },{"_process":208}],274:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RainbowBug = void 0;
+const React = __importStar(require("react"));
+const util_1 = require("./util");
+class RainbowBug extends React.Component {
+    constructor() {
+        super(...arguments);
+        this.colors = ['white', 'white', 'white', 'white', 'white', 'white', 'white'];
+    }
+    render() {
+        this.colors.unshift(util_1.randomColor());
+        this.colors.pop();
+        return React.createElement("div", { style: {
+                backgroundColor: this.colors[0],
+                display: 'inline-block',
+                padding: 5,
+                borderRadius: 3,
+                marginRight: 10,
+            } },
+            this.props.name ? this.props.name + ' ' : null,
+            this.colors.map((c, ii) => React.createElement("div", { key: ii, style: {
+                    display: 'inline-block',
+                    height: '1.2em',
+                    width: '0.5em',
+                    backgroundColor: c,
+                    border: '1px solid black',
+                } })));
+    }
+}
+exports.RainbowBug = RainbowBug;
+
+},{"./util":276,"react":225}],275:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EarthstarRouter = void 0;
@@ -68565,7 +68589,7 @@ class EarthstarRouter {
 }
 exports.EarthstarRouter = EarthstarRouter;
 
-},{"./emitter":273,"./workspace":276,"earthstar":102,"fast-deep-equal":134,"lodash.debounce":173}],275:[function(require,module,exports){
+},{"./emitter":273,"./workspace":277,"earthstar":102,"fast-deep-equal":134,"lodash.debounce":173}],276:[function(require,module,exports){
 "use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -68602,7 +68626,7 @@ exports.randomColor = () => {
     return `rgb(${r},${g},${b})`;
 };
 
-},{}],276:[function(require,module,exports){
+},{}],277:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Workspace = void 0;

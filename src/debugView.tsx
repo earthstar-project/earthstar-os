@@ -9,10 +9,10 @@ import throttle = require('lodash.throttle');
 
 import { Thunk } from './types';
 import {
-    randint,
     randomColor,
 } from './util';
 import { EarthstarRouter } from './router';
+import { RainbowBug } from './rainbowBug';
 
 let logDebug = (...args : any[]) => console.log('DebugView |', ...args);
 let logDebugEmitter = (...args : any[]) => console.log('DebugEmitterView |', ...args);
@@ -39,22 +39,7 @@ export class DebugEmitterView extends React.Component<DebugEmitterViewProps, any
         if (this.unsub) { this.unsub(); }
     }
     render() {
-        return <div style={{
-                backgroundColor: this.colors[0],
-                display: 'inline-block',
-                padding: 10,
-                borderRadius: 3,
-                marginRight: 10,
-            }}>
-            {this.props.name}
-            {this.colors.map((c, ii) => <div key={ii} style={{
-                display: 'inline-block',
-                height: '1.2em',
-                width: '0.5em',
-                backgroundColor: c,
-                border: '1px solid black',
-            }}></div>)}
-        </div>
+        return <RainbowBug name={this.props.name} />;
     }
 }
 
@@ -66,7 +51,6 @@ interface DebugViewProps {
 }
 export class DebugView extends React.Component<DebugViewProps, any> {
     unsub : Thunk | null = null;
-    colors : string[] = ['white', 'white', 'white', 'white', 'white', 'white', 'white'];
     componentDidMount() {
         logDebug('subscribing to router changes');
         let router = this.props.router;
@@ -77,11 +61,7 @@ export class DebugView extends React.Component<DebugViewProps, any> {
                 router.onStorageChange,
                 router.onSyncerChange
             ],
-            throttle(() => {
-                this.colors.unshift(randomColor());
-                this.colors.pop();
-                this.forceUpdate();
-            }, 100)
+            throttle(() => this.forceUpdate(), 200)
         );
     }
     componentWillUnmount() {
@@ -94,22 +74,7 @@ export class DebugView extends React.Component<DebugViewProps, any> {
         let docs : Document[] = workspace === null ? [] : workspace.storage.documents({ includeHistory: false });
         let pubs : Pub[] = workspace === null ? [] : workspace.syncer.state.pubs;
         return <div style={sPage}>
-            <div style={{
-                    backgroundColor: this.colors[0],
-                    display: 'inline-block',
-                    padding: 10,
-                    borderRadius: 3,
-                    marginRight: 10,
-                }}>
-                DebugView renders
-                {this.colors.map((c, ii) => <div key={ii} style={{
-                    display: 'inline-block',
-                    height: '1.2em',
-                    width: '0.5em',
-                    backgroundColor: c,
-                    border: '1px solid black',
-                }}></div>)}
-            </div>
+            <div><RainbowBug name="DebugView"/></div>
             <h3>params</h3>
             <pre>{JSON.stringify(router.params, null, 4)}</pre>
             <h3>workspace</h3>
