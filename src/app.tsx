@@ -16,9 +16,6 @@ let appsAndNames = {
 }
 
 let router = new EarthstarRouter(appsAndNames);
-setTimeout(() => {
-    router.setApp('chess');
-}, 2000);
 
 let addDemoContent = (router : EarthstarRouter) => {
     let demoKeypairs = [

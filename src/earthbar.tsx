@@ -78,9 +78,10 @@ export class Earthbar extends React.Component<EarthbarProps, any> {
     componentDidMount() {
         logEarthbar('subscribing to router changes');
         let router = this.props.router;
-        this.unsub = subscribeToMany(
+        this.unsub = subscribeToMany<any>(
             [
-                router.onWorkspaceChange,  // ?
+                router.onWorkspaceChange,  // changes to workspace address or author
+                router.onAppChange,
                 router.onSyncerChange  // to update Sync button state
             ],
             throttle(() => this.forceUpdate(), 200)
@@ -142,6 +143,20 @@ export class Earthbar extends React.Component<EarthbarProps, any> {
                         <option value="null">(no author)</option>
                         {sorted(notNull(router.history.authorKeypairs).map(kp => kp.address)).map(authorAddress =>
                             <option key={authorAddress} value={authorAddress}>{authorAddress.slice(0, 6 + 6) + '...'}</option>
+                        )}
+                    </select>
+                </label>
+            </div>
+            <div style={sBarItem}>
+                <label>
+                    <span style={{opacity: cFaintOpacity}}>app</span>
+                    <select style={sSelect}
+                        value={router.app == null ? 'null' : router.app}
+                        onChange={(e) => router.setApp(e.target.value == 'null' ? null : e.target.value)}
+                        >
+                        <option value="null">(no app)</option>
+                        {sorted(Object.entries(router.appsAndNames)).map(([app, appName] : [string, string]) =>
+                            <option key={app} value={app}>{appName}</option>
                         )}
                     </select>
                 </label>

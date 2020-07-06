@@ -67914,9 +67914,6 @@ let appsAndNames = {
     wiki: 'Wiki',
 };
 let router = new router_1.EarthstarRouter(appsAndNames);
-setTimeout(() => {
-    router.setApp('chess');
-}, 2000);
 let addDemoContent = (router) => {
     let demoKeypairs = [
         {
@@ -68181,6 +68178,7 @@ class Earthbar extends React.Component {
         let router = this.props.router;
         this.unsub = earthstar_1.subscribeToMany([
             router.onWorkspaceChange,
+            router.onAppChange,
             router.onSyncerChange // to update Sync button state
         ], throttle(() => this.forceUpdate(), 200));
     }
@@ -68231,6 +68229,12 @@ class Earthbar extends React.Component {
                     React.createElement("select", { style: sSelect, value: router.authorKeypair == null ? 'null' : router.authorKeypair.address, onChange: (e) => router.setAuthorAddress(e.target.value == 'null' ? null : e.target.value) },
                         React.createElement("option", { value: "null" }, "(no author)"),
                         util_1.sorted(util_1.notNull(router.history.authorKeypairs).map(kp => kp.address)).map(authorAddress => React.createElement("option", { key: authorAddress, value: authorAddress }, authorAddress.slice(0, 6 + 6) + '...'))))),
+            React.createElement("div", { style: sBarItem },
+                React.createElement("label", null,
+                    React.createElement("span", { style: { opacity: cFaintOpacity } }, "app"),
+                    React.createElement("select", { style: sSelect, value: router.app == null ? 'null' : router.app, onChange: (e) => router.setApp(e.target.value == 'null' ? null : e.target.value) },
+                        React.createElement("option", { value: "null" }, "(no app)"),
+                        util_1.sorted(Object.entries(router.appsAndNames)).map(([app, appName]) => React.createElement("option", { key: app, value: app }, appName))))),
             React.createElement("div", { style: sBarSpacer }),
             React.createElement("div", { style: sBarItem },
                 React.createElement("div", { style: { opacity: cFaintOpacity } },
