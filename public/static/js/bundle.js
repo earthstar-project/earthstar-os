@@ -67904,7 +67904,8 @@ const React = __importStar(require("react"));
 const ReactDOM = __importStar(require("react-dom"));
 const router_1 = require("./router");
 const earthbar_1 = require("./earthbar");
-const debugView_1 = require("./debugView");
+const appSwitcher_1 = require("./appSwitcher");
+const debugApp_1 = require("./debugApp");
 //================================================================================
 // MAIN
 let appsAndNames = {
@@ -67912,6 +67913,9 @@ let appsAndNames = {
     chess: 'Chess',
     profile: 'Profile',
     wiki: 'Wiki',
+};
+let appComponents = {
+    debug: debugApp_1.DebugApp,
 };
 let router = new router_1.EarthstarRouter(appsAndNames);
 let addDemoContent = (router) => {
@@ -67944,18 +67948,10 @@ let addDemoContent = (router) => {
 //addDemoContent(router);
 ReactDOM.render([
     React.createElement(earthbar_1.Earthbar, { key: "earthbar", router: router }),
-    React.createElement("div", { key: "events", style: { padding: 15 } },
-        React.createElement("h3", null, "events"),
-        React.createElement("div", null,
-            React.createElement(debugView_1.DebugEmitterView, { emitter: router.onParamsChange }),
-            React.createElement(debugView_1.DebugEmitterView, { emitter: router.onAppChange }),
-            React.createElement(debugView_1.DebugEmitterView, { emitter: router.onWorkspaceChange }),
-            React.createElement(debugView_1.DebugEmitterView, { emitter: router.onStorageChange }),
-            React.createElement(debugView_1.DebugEmitterView, { emitter: router.onSyncerChange }))),
-    React.createElement(debugView_1.DebugView, { key: "debug", router: router }),
+    React.createElement(appSwitcher_1.AppSwitcher, { key: "appSwitcher", router: router, appComponents: appComponents }),
 ], document.getElementById('react-slot'));
 
-},{"./debugView":271,"./earthbar":272,"./router":275,"react":225,"react-dom":222}],271:[function(require,module,exports){
+},{"./appSwitcher":271,"./debugApp":272,"./earthbar":273,"./router":276,"react":225,"react-dom":222}],271:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -67977,14 +67973,85 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DebugView = exports.DebugEmitterView = void 0;
+exports.AppSwitcher = void 0;
+const React = __importStar(require("react"));
+let logAppSwitcher = (...args) => console.log('AppSwitcher |', ...args);
+class AppSwitcher extends React.Component {
+    constructor() {
+        super(...arguments);
+        this.unsub = null;
+    }
+    componentDidMount() {
+        logAppSwitcher('subscribing to router changes');
+        this.unsub = this.props.router.onAppChange.subscribe(() => this.forceUpdate());
+    }
+    componentWillUnmount() {
+        if (this.unsub) {
+            this.unsub();
+        }
+    }
+    render() {
+        logAppSwitcher('render');
+        let router = this.props.router;
+        if (router.app === null) {
+            return React.createElement("div", null, "No app selected");
+        }
+        let AppComponent = this.props.appComponents[router.app];
+        if (AppComponent === undefined) {
+            return React.createElement("div", null,
+                "Unknown app: ",
+                React.createElement("code", null, router.app));
+        }
+        return React.createElement(AppComponent, { router: router });
+    }
+}
+exports.AppSwitcher = AppSwitcher;
+
+},{"react":225}],272:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.DebugView = exports.DebugEmitterView = exports.DebugApp = void 0;
 const React = __importStar(require("react"));
 const throttle = require("lodash.throttle");
 const util_1 = require("./util");
-const rainbowBug_1 = require("./rainbowBug");
 const emitter_1 = require("./emitter");
+const rainbowBug_1 = require("./rainbowBug");
 let logDebug = (...args) => console.log('DebugView |', ...args);
 let logDebugEmitter = (...args) => console.log('DebugEmitterView |', ...args);
+//================================================================================
+let sPage = {
+    padding: 15,
+};
+exports.DebugApp = (props) => React.createElement("div", { style: sPage },
+    React.createElement("h3", null, "events"),
+    React.createElement("div", null,
+        React.createElement(DebugEmitterView, { emitter: props.router.onParamsChange }),
+        React.createElement(DebugEmitterView, { emitter: props.router.onAppChange }),
+        React.createElement(DebugEmitterView, { emitter: props.router.onWorkspaceChange }),
+        React.createElement(DebugEmitterView, { emitter: props.router.onStorageChange }),
+        React.createElement(DebugEmitterView, { emitter: props.router.onSyncerChange })),
+    React.createElement("hr", null),
+    React.createElement(DebugView, { key: "debug", router: props.router }),
+    ",");
 class DebugEmitterView extends React.Component {
     constructor() {
         super(...arguments);
@@ -68010,9 +68077,6 @@ class DebugEmitterView extends React.Component {
     }
 }
 exports.DebugEmitterView = DebugEmitterView;
-let sPage = {
-    padding: 15,
-};
 class DebugView extends React.Component {
     constructor() {
         super(...arguments);
@@ -68041,7 +68105,7 @@ class DebugView extends React.Component {
         let workspace = router.workspace;
         let docs = workspace === null ? [] : workspace.storage.documents({ includeHistory: false });
         let pubs = workspace === null ? [] : workspace.syncer.state.pubs;
-        return React.createElement("div", { style: sPage },
+        return React.createElement("div", null,
             React.createElement("div", null,
                 React.createElement(rainbowBug_1.RainbowBug, { name: "DebugView" })),
             React.createElement("h3", null, "app"),
@@ -68082,7 +68146,7 @@ class DebugView extends React.Component {
 }
 exports.DebugView = DebugView;
 
-},{"./emitter":273,"./rainbowBug":274,"./util":276,"lodash.throttle":174,"react":225}],272:[function(require,module,exports){
+},{"./emitter":274,"./rainbowBug":275,"./util":277,"lodash.throttle":174,"react":225}],273:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -68245,7 +68309,7 @@ class Earthbar extends React.Component {
 }
 exports.Earthbar = Earthbar;
 
-},{"./rainbowBug":274,"./util":276,"earthstar":102,"lodash.throttle":174,"react":225}],273:[function(require,module,exports){
+},{"./rainbowBug":275,"./util":277,"earthstar":102,"lodash.throttle":174,"react":225}],274:[function(require,module,exports){
 (function (process){
 "use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
@@ -68306,7 +68370,7 @@ exports.subscribeToMany = (emitters, cb) => {
 };
 
 }).call(this,require('_process'))
-},{"_process":208}],274:[function(require,module,exports){
+},{"_process":208}],275:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -68358,7 +68422,7 @@ class RainbowBug extends React.Component {
 }
 exports.RainbowBug = RainbowBug;
 
-},{"./util":276,"react":225}],275:[function(require,module,exports){
+},{"./util":277,"react":225}],276:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EarthstarRouter = void 0;
@@ -68400,8 +68464,8 @@ class EarthstarRouter {
     constructor(appsAndNames) {
         this.workspaceAddress = null;
         this.authorKeypair = null;
-        this.app = null;
-        this.appName = null;
+        this.app = null; // short codename for app
+        this.appName = null; // human-readable app name, for display
         this.workspace = null;
         this.unsubWorkspaceStorage = null;
         this.unsubWorkspaceSyncer = null;
@@ -68654,7 +68718,7 @@ class EarthstarRouter {
 }
 exports.EarthstarRouter = EarthstarRouter;
 
-},{"./emitter":273,"./workspace":277,"earthstar":102,"fast-deep-equal":134,"lodash.debounce":173}],276:[function(require,module,exports){
+},{"./emitter":274,"./workspace":278,"earthstar":102,"fast-deep-equal":134,"lodash.debounce":173}],277:[function(require,module,exports){
 "use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -68691,7 +68755,7 @@ exports.randomColor = () => {
     return `rgb(${r},${g},${b})`;
 };
 
-},{}],277:[function(require,module,exports){
+},{}],278:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Workspace = void 0;

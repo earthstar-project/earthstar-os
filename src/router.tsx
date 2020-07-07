@@ -58,8 +58,8 @@ export class EarthstarRouter {
     workspaceAddress : WorkspaceAddress | null = null;
     authorKeypair : AuthorKeypair | null = null;
     params : HashParams;
-    app : string | null = null;
-    appName : string | null = null;
+    app : string | null = null;  // short codename for app
+    appName : string | null = null;  // human-readable app name, for display
     appsAndNames : String2String;  // map from app short codename to human-readable name
 
     history : EarthstarLoginHistory;

@@ -10,11 +10,32 @@ import {
     randomColor,
 } from './util';
 import { EarthstarRouter } from './router';
-import { RainbowBug } from './rainbowBug';
+import { AppProps } from './appSwitcher';
 import { Emitter, subscribeToMany } from './emitter';
+import { RainbowBug } from './rainbowBug';
 
 let logDebug = (...args : any[]) => console.log('DebugView |', ...args);
 let logDebugEmitter = (...args : any[]) => console.log('DebugEmitterView |', ...args);
+
+//================================================================================
+
+let sPage : React.CSSProperties = {
+    padding: 15,
+}
+
+export let DebugApp : React.FunctionComponent<AppProps> = (props) =>
+    <div style={sPage}>
+        <h3>events</h3>
+        <div>
+            <DebugEmitterView emitter={props.router.onParamsChange} />
+            <DebugEmitterView emitter={props.router.onAppChange} />
+            <DebugEmitterView emitter={props.router.onWorkspaceChange} />
+            <DebugEmitterView emitter={props.router.onStorageChange} />
+            <DebugEmitterView emitter={props.router.onSyncerChange} />
+        </div>
+        <hr />
+        <DebugView key="debug" router={props.router} />,
+    </div>;
 
 //================================================================================
 
@@ -41,9 +62,8 @@ export class DebugEmitterView extends React.Component<DebugEmitterViewProps, any
     }
 }
 
-let sPage : React.CSSProperties = {
-    padding: 15,
-}
+//================================================================================
+
 interface DebugViewProps {
     router : EarthstarRouter;
 }
@@ -72,7 +92,7 @@ export class DebugView extends React.Component<DebugViewProps, any> {
         let workspace = router.workspace;
         let docs : Document[] = workspace === null ? [] : workspace.storage.documents({ includeHistory: false });
         let pubs : Pub[] = workspace === null ? [] : workspace.syncer.state.pubs;
-        return <div style={sPage}>
+        return <div>
             <div><RainbowBug name="DebugView"/></div>
             <h3>app</h3>
             <code>{'' + router.app}: {'' + router.appName}</code>
@@ -110,4 +130,3 @@ export class DebugView extends React.Component<DebugViewProps, any> {
         </div>;
     }
 }
-

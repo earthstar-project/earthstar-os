@@ -3,7 +3,8 @@ import * as ReactDOM from 'react-dom';
 
 import { EarthstarRouter } from './router';
 import { Earthbar } from './earthbar';
-import { DebugView, DebugEmitterView } from './debugView';
+import { AppSwitcher, AppToComponent } from './appSwitcher';
+import { DebugApp } from './debugApp';
 
 //================================================================================
 // MAIN
@@ -13,6 +14,9 @@ let appsAndNames = {
     chess: 'Chess',
     profile: 'Profile',
     wiki: 'Wiki',
+}
+let appComponents : AppToComponent = {
+    debug: DebugApp,
 }
 
 let router = new EarthstarRouter(appsAndNames);
@@ -50,17 +54,7 @@ let addDemoContent = (router : EarthstarRouter) => {
 ReactDOM.render(
     [
         <Earthbar key="earthbar" router={router} />,
-        <div key="events" style={{ padding:15 }}>
-            <h3>events</h3>
-            <div>
-                <DebugEmitterView emitter={router.onParamsChange} />
-                <DebugEmitterView emitter={router.onAppChange} />
-                <DebugEmitterView emitter={router.onWorkspaceChange} />
-                <DebugEmitterView emitter={router.onStorageChange} />
-                <DebugEmitterView emitter={router.onSyncerChange} />
-            </div>
-        </div>,
-        <DebugView key="debug" router={router} />,
+        <AppSwitcher key="appSwitcher" router={router} appComponents={appComponents} />,
     ],
     document.getElementById('react-slot')
 );
