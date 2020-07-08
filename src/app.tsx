@@ -5,18 +5,19 @@ import { EarthstarRouter } from './router';
 import { Earthbar } from './earthbar';
 import { AppSwitcher, AppToComponent } from './appSwitcher';
 import { DebugApp } from './debugApp';
+import { ProfileApp } from './profileApp';
 
 //================================================================================
 // MAIN
 
 let appsAndNames = {
-    debug: 'Debug view',
+    debug: 'Debug View',
     chess: 'Chess',
-    profile: 'Profile',
-    wiki: 'Wiki',
+    profile: 'My Profile',
 }
 let appComponents : AppToComponent = {
     debug: DebugApp,
+    profile: ProfileApp,
 }
 
 let router = new EarthstarRouter(appsAndNames);

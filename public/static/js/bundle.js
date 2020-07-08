@@ -18520,59 +18520,52 @@ tslib_1.__exportStar(require("./workspace"), exports);
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LayerAbout = void 0;
 const addresses_1 = require("../util/addresses");
-/*
-    paths:
-    ------
-    /about/~@aaaa.xxxxx/name
-    /about/~@aaaa.xxxxx/description    // coming soon
-    /about/~@aaaa.xxxxx/icon           // coming soon
-*/
 class LayerAbout {
     constructor(storage) {
         this.storage = storage;
     }
-    static makeNamePath(author) {
-        return `/about/~${author}/name`;
+    static makeProfilePath(author) {
+        return `/about/~${author}/profile`;
     }
-    listAuthorProfiles() {
-        // TODO: this only returns people with /about info.  should it also include authors of any document?
-        let nameDocs = this.storage.documents({ pathPrefix: '/about/' })
-            .filter(doc => doc.path.endsWith('/name'));
-        let profiles = nameDocs.map(doc => {
-            let { authorParsed, err } = addresses_1.parseAuthorAddress(doc.author);
-            if (err || !authorParsed) {
-                return null;
-            }
-            return {
-                address: authorParsed.address,
-                shortname: authorParsed.shortname,
-                longname: doc.value,
-            };
-        });
-        return profiles.filter(x => x !== null);
+    listAuthorInfos() {
+        let authorAddresses = this.storage.authors();
+        let infos = authorAddresses.map(authorAddress => this.getAuthorInfo(authorAddress));
+        return infos.filter(x => x !== null);
     }
-    getAuthorProfile(author) {
-        let { authorParsed, err } = addresses_1.parseAuthorAddress(author);
+    getAuthorInfo(authorAddress) {
+        // returns null when the given author address is invalid (can't be parsed).
+        // otherwise returns an object, within which the profile might be an empty object
+        // if there's no profile document for this author.
+        // TODO: this doesn't verify this author has ever written to the workspace...?
+        let { authorParsed, err } = addresses_1.parseAuthorAddress(authorAddress);
         if (err || !authorParsed) {
             return null;
         }
-        let nameDoc = this.storage.getDocument(LayerAbout.makeNamePath(author));
-        let longname = nameDoc === undefined
-            ? null
-            : (nameDoc.value || null);
-        return {
+        let info = {
             address: authorParsed.address,
             shortname: authorParsed.shortname,
-            longname: longname,
+            pubkey: authorParsed.pubkey,
+            profile: {},
         };
+        let profilePath = LayerAbout.makeProfilePath(authorAddress);
+        let profileJson = this.storage.getValue(profilePath);
+        if (profileJson) {
+            try {
+                info.profile = JSON.parse(profileJson);
+            }
+            catch (e) {
+            }
+        }
+        return info;
     }
-    setMyAuthorLongname(keypair, longname, timestamp) {
-        // we can only set our own name, so we don't need an author input parameter.
+    setMyAuthorProfile(keypair, profile, timestamp) {
+        // we can only set our own info, so we don't need an author input parameter.
+        // set profile to null to erase your profile (by writing an empty string to your profile document).
         // normally timestamp should be omitted.
         return this.storage.set(keypair, {
             format: 'es.3',
-            path: LayerAbout.makeNamePath(keypair.address),
-            value: longname,
+            path: LayerAbout.makeProfilePath(keypair.address),
+            value: profile === null ? '' : JSON.stringify(profile),
             timestamp: timestamp,
         });
     }
@@ -67906,16 +67899,17 @@ const router_1 = require("./router");
 const earthbar_1 = require("./earthbar");
 const appSwitcher_1 = require("./appSwitcher");
 const debugApp_1 = require("./debugApp");
+const profileApp_1 = require("./profileApp");
 //================================================================================
 // MAIN
 let appsAndNames = {
-    debug: 'Debug view',
+    debug: 'Debug View',
     chess: 'Chess',
-    profile: 'Profile',
-    wiki: 'Wiki',
+    profile: 'My Profile',
 };
 let appComponents = {
     debug: debugApp_1.DebugApp,
+    profile: profileApp_1.ProfileApp,
 };
 let router = new router_1.EarthstarRouter(appsAndNames);
 let addDemoContent = (router) => {
@@ -67951,7 +67945,7 @@ ReactDOM.render([
     React.createElement(appSwitcher_1.AppSwitcher, { key: "appSwitcher", router: router, appComponents: appComponents }),
 ], document.getElementById('react-slot'));
 
-},{"./appSwitcher":271,"./debugApp":272,"./earthbar":273,"./router":276,"react":225,"react-dom":222}],271:[function(require,module,exports){
+},{"./appSwitcher":271,"./debugApp":272,"./earthbar":273,"./profileApp":275,"./router":277,"react":225,"react-dom":222}],271:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -68146,7 +68140,7 @@ class DebugView extends React.Component {
 }
 exports.DebugView = DebugView;
 
-},{"./emitter":274,"./rainbowBug":275,"./util":277,"lodash.throttle":174,"react":225}],273:[function(require,module,exports){
+},{"./emitter":274,"./rainbowBug":276,"./util":278,"lodash.throttle":174,"react":225}],273:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -68309,7 +68303,7 @@ class Earthbar extends React.Component {
 }
 exports.Earthbar = Earthbar;
 
-},{"./rainbowBug":275,"./util":277,"earthstar":102,"lodash.throttle":174,"react":225}],274:[function(require,module,exports){
+},{"./rainbowBug":276,"./util":278,"earthstar":102,"lodash.throttle":174,"react":225}],274:[function(require,module,exports){
 (function (process){
 "use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
@@ -68392,6 +68386,97 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.ProfileApp = void 0;
+const React = __importStar(require("react"));
+const throttle = require("lodash.throttle");
+const emitter_1 = require("./emitter");
+let logProfileApp = (...args) => console.log('ProfileApp |', ...args);
+//================================================================================
+let sPage = {
+    padding: 15,
+};
+class ProfileApp extends React.Component {
+    constructor() {
+        super(...arguments);
+        this.unsub = null;
+    }
+    componentDidMount() {
+        logProfileApp('subscribing to router changes');
+        let router = this.props.router;
+        this.unsub = emitter_1.subscribeToMany([
+            //router.onParamsChange,
+            router.onWorkspaceChange,
+            router.onStorageChange,
+        ], throttle(() => this.forceUpdate(), 200));
+    }
+    componentWillUnmount() {
+        if (this.unsub) {
+            this.unsub();
+        }
+    }
+    render() {
+        let router = this.props.router;
+        if (router.workspace === null) {
+            return React.createElement("div", { style: sPage }, "Choose a workspace");
+        }
+        if (router.authorKeypair === null) {
+            return React.createElement("div", { style: sPage }, "Choose an author");
+        }
+        let layerAbout = router.workspace.layerAbout;
+        let info = layerAbout.getAuthorInfo(router.authorKeypair.address);
+        let shortname = info ? info.shortname : '(none)';
+        let pubkey = info ? info.pubkey : '(none)';
+        let longname = (info === null || info === void 0 ? void 0 : info.profile.longname) || '(none)';
+        return React.createElement("div", { style: sPage },
+            React.createElement("h3", null, "My profile"),
+            React.createElement("p", null,
+                React.createElement("code", null,
+                    React.createElement("b", null,
+                        "@",
+                        shortname),
+                    React.createElement("i", null,
+                        ".",
+                        pubkey))),
+            React.createElement("p", null,
+                "Author Address: ",
+                React.createElement("code", null, router.authorKeypair.address)),
+            React.createElement("p", null,
+                "Password: ",
+                React.createElement("code", null, router.authorKeypair.secret)),
+            React.createElement("p", null,
+                "Shortname: ",
+                React.createElement("b", null, shortname)),
+            React.createElement("p", null,
+                "Longname: ",
+                React.createElement("b", null, longname)),
+            React.createElement("h4", null, "Profile info"),
+            React.createElement("pre", null, JSON.stringify(info, null, 4)));
+    }
+}
+exports.ProfileApp = ProfileApp;
+
+},{"./emitter":274,"lodash.throttle":174,"react":225}],276:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
 exports.RainbowBug = void 0;
 const React = __importStar(require("react"));
 const util_1 = require("./util");
@@ -68422,7 +68507,7 @@ class RainbowBug extends React.Component {
 }
 exports.RainbowBug = RainbowBug;
 
-},{"./util":277,"react":225}],276:[function(require,module,exports){
+},{"./util":278,"react":225}],277:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EarthstarRouter = void 0;
@@ -68718,7 +68803,7 @@ class EarthstarRouter {
 }
 exports.EarthstarRouter = EarthstarRouter;
 
-},{"./emitter":274,"./workspace":278,"earthstar":102,"fast-deep-equal":134,"lodash.debounce":173}],277:[function(require,module,exports){
+},{"./emitter":274,"./workspace":279,"earthstar":102,"fast-deep-equal":134,"lodash.debounce":173}],278:[function(require,module,exports){
 "use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -68755,7 +68840,7 @@ exports.randomColor = () => {
     return `rgb(${r},${g},${b})`;
 };
 
-},{}],278:[function(require,module,exports){
+},{}],279:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Workspace = void 0;
