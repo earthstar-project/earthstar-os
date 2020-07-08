@@ -68529,14 +68529,29 @@ class ProfileApp extends React.Component {
         let info = infoOrNull;
         let hue = typeof info.profile.hue === 'number' ? info.profile.hue : null;
         let color = (hue === null) ? '#aaa' : `hsl(${hue}, 50%, 50%)`;
+        // TODO: make sure subject is in this list
+        let allAuthorInfos = layerAbout.listAuthorInfos();
+        logProfileApp(allAuthorInfos);
+        //                    <select name="ws" style={sSelect}
+        //                        value={router.workspaceAddress || 'null'}
+        //                        onChange={(e) => router.setWorkspace(e.target.value == 'null' ? null : e.target.value)}
         return React.createElement("div", { style: sPage },
             React.createElement(rainbowBug_1.RainbowBug, { position: 'topRight' }),
-            React.createElement("div", { style: {
-                    width: 100,
-                    height: 100,
-                    borderRadius: 100,
-                    backgroundColor: color,
-                } }),
+            React.createElement("p", null,
+                React.createElement("select", { value: subject, onChange: (e) => { logProfileApp('TODO: change author hash param to:', e.target.value); } }, allAuthorInfos.map(authorInfo => React.createElement("option", { key: authorInfo.address, value: authorInfo.address },
+                    "@",
+                    authorInfo.shortname,
+                    ".",
+                    authorInfo.pubkey.slice(0, 10),
+                    "...",
+                    authorInfo.profile.longname ? ' -- ' + authorInfo.profile.longname : null)))),
+            React.createElement("p", null,
+                React.createElement("div", { style: {
+                        width: 100,
+                        height: 100,
+                        borderRadius: 100,
+                        backgroundColor: color,
+                    } })),
             isMe ? React.createElement("p", null,
                 React.createElement("i", null, "This is you. "),
                 editMode
