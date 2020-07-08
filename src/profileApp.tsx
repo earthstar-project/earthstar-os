@@ -152,9 +152,17 @@ export class ProfileApp extends React.Component<AppProps, ProfileAppState> {
         }
         let editMode = this.state.editMode;
         let info = infoOrNull;
+        let hue = typeof info.profile.hue === 'number' ? info.profile.hue : null;
+        let color = (hue === null) ? '#aaa' : `hsl(${hue}, 50%, 50%)`;
         return <div style={sPage}>
             <RainbowBug position='topRight' />
-            <h2>Profile</h2>
+            {/* profile pic */}
+            <div style={{
+                width: 100,
+                height: 100,
+                borderRadius: 100,
+                backgroundColor: color,
+            }}/>
             {isMe ? <p>
                 <i>This is you. </i>
                 {editMode
@@ -166,20 +174,22 @@ export class ProfileApp extends React.Component<AppProps, ProfileAppState> {
                 </button>
                 }
             </p> : null}
-            <p><code><b>@{info.shortname}</b><i>.{info.pubkey}</i></code></p>
-            <p>Shortname: <b>{info.shortname}</b></p>
-            <p>Longname: {
-                editMode
-                  ? <input type="text"
-                        style={{width: '50%', padding: 5, fontWeight: 'bold'}}
-                        placeholder="(none)"
-                        value={this.state.editedProfile.longname || ''}
-                        onChange={(e: any) => this.setState({editedProfile: {...this.state.editedProfile, longname: e.target.value}})}
-                        />
-                  : <b>{info.profile.longname || '(none)'}</b>
-                }
-            </p>
-            <h4>Info</h4>
+            <p><code><b style={{fontSize: '1.25em'}}>@{info.shortname}</b><i>.{info.pubkey}</i></code></p>
+            {info.profile.longname
+              ? <p style={{fontSize: '1.25em'}}>{
+                    editMode
+                    ? <input type="text"
+                            style={{width: '50%', padding: 5, fontWeight: 'bold'}}
+                            placeholder="(none)"
+                            value={this.state.editedProfile.longname || ''}
+                            onChange={(e: any) => this.setState({editedProfile: {...this.state.editedProfile, longname: e.target.value}})}
+                            />
+                    : <b>{info.profile.longname}</b>
+                    }
+                </p>
+              : null
+            }
+            <hr />
             <pre>{JSON.stringify(info, null, 4)}</pre>
         </div>;
     }

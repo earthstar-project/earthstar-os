@@ -68527,9 +68527,16 @@ class ProfileApp extends React.Component {
         }
         let editMode = this.state.editMode;
         let info = infoOrNull;
+        let hue = typeof info.profile.hue === 'number' ? info.profile.hue : null;
+        let color = (hue === null) ? '#aaa' : `hsl(${hue}, 50%, 50%)`;
         return React.createElement("div", { style: sPage },
             React.createElement(rainbowBug_1.RainbowBug, { position: 'topRight' }),
-            React.createElement("h2", null, "Profile"),
+            React.createElement("div", { style: {
+                    width: 100,
+                    height: 100,
+                    borderRadius: 100,
+                    backgroundColor: color,
+                } }),
             isMe ? React.createElement("p", null,
                 React.createElement("i", null, "This is you. "),
                 editMode
@@ -68537,21 +68544,18 @@ class ProfileApp extends React.Component {
                     : React.createElement("button", { style: sButton, onClick: () => this._startEditing(info.profile) }, "Edit")) : null,
             React.createElement("p", null,
                 React.createElement("code", null,
-                    React.createElement("b", null,
+                    React.createElement("b", { style: { fontSize: '1.25em' } },
                         "@",
                         info.shortname),
                     React.createElement("i", null,
                         ".",
                         info.pubkey))),
-            React.createElement("p", null,
-                "Shortname: ",
-                React.createElement("b", null, info.shortname)),
-            React.createElement("p", null,
-                "Longname: ",
-                editMode
+            info.profile.longname
+                ? React.createElement("p", { style: { fontSize: '1.25em' } }, editMode
                     ? React.createElement("input", { type: "text", style: { width: '50%', padding: 5, fontWeight: 'bold' }, placeholder: "(none)", value: this.state.editedProfile.longname || '', onChange: (e) => this.setState({ editedProfile: Object.assign(Object.assign({}, this.state.editedProfile), { longname: e.target.value }) }) })
-                    : React.createElement("b", null, info.profile.longname || '(none)')),
-            React.createElement("h4", null, "Info"),
+                    : React.createElement("b", null, info.profile.longname))
+                : null,
+            React.createElement("hr", null),
             React.createElement("pre", null, JSON.stringify(info, null, 4)));
     }
 }
