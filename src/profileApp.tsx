@@ -19,7 +19,10 @@ let logProfileApp = (...args : any[]) => console.log('ProfileApp |', ...args);
 //================================================================================
 
 let sPage : React.CSSProperties = {
-    padding: 15,
+    margin: 40,
+    padding: 20,
+    borderRadius: 10,
+    backgroundColor: '#e4e4e4',
 }
 
 export class ProfileApp extends React.Component<AppProps, any> {
@@ -29,7 +32,7 @@ export class ProfileApp extends React.Component<AppProps, any> {
         let router = this.props.router;
         this.unsub = subscribeToMany<any>(
             [
-                //router.onParamsChange,
+                router.onParamsChange,  // expects an optional "author" param, which can be "me"
                 router.onWorkspaceChange,
                 router.onStorageChange,
             ],
@@ -46,24 +49,37 @@ export class ProfileApp extends React.Component<AppProps, any> {
                 Choose a workspace
             </div>;
         }
-        if (router.authorKeypair === null) {
+        let layerAbout = router.workspace.layerAbout;
+
+        let subject = router.params.author;
+        let isMe = false;
+        if (router.authorKeypair !== null) {
+            let myAddress = router.authorKeypair.address;
+            if (!subject || subject === "me") {
+                subject = myAddress;
+            }
+            isMe = subject === myAddress;
+        }
+
+        if (!subject) {
             return <div style={sPage}>
                 Choose an author
             </div>;
         }
-        let layerAbout = router.workspace.layerAbout;
-        let info = layerAbout.getAuthorInfo(router.authorKeypair.address);
-        let shortname = info ? info.shortname : '(none)';
-        let pubkey = info ? info.pubkey : '(none)';
-        let longname = info?.profile.longname || '(none)';
+
+        let info = layerAbout.getAuthorInfo(subject);
+        if (info === null) {
+            return <div style={sPage}>
+                Unparsable author name: <code>{JSON.stringify(subject)}</code>
+            </div>;
+        }
         return <div style={sPage}>
-            <h3>My profile</h3>
-            <p><code><b>@{shortname}</b><i>.{pubkey}</i></code></p>
-            <p>Author Address: <code>{router.authorKeypair.address}</code></p>
-            <p>Password: <code>{router.authorKeypair.secret}</code></p>
-            <p>Shortname: <b>{shortname}</b></p>
-            <p>Longname: <b>{longname}</b></p>
-            <h4>Profile info</h4>
+            <h2>Profile</h2>
+            {isMe ? <p><i>This is you</i></p> : null}
+            <p><code><b>@{info.shortname}</b><i>.{info.pubkey}</i></code></p>
+            <p>Shortname: <b>{info.shortname}</b></p>
+            <p>Longname: <b>{info.profile.longname || '(none)'}</b></p>
+            <h4>Info</h4>
             <pre>{JSON.stringify(info, null, 4)}</pre>
         </div>;
     }

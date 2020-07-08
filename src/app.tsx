@@ -13,7 +13,7 @@ import { ProfileApp } from './profileApp';
 let appsAndNames = {
     debug: 'Debug View',
     chess: 'Chess',
-    profile: 'My Profile',
+    profile: 'Profile',
 }
 let appComponents : AppToComponent = {
     debug: DebugApp,

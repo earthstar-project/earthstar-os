@@ -67905,7 +67905,7 @@ const profileApp_1 = require("./profileApp");
 let appsAndNames = {
     debug: 'Debug View',
     chess: 'Chess',
-    profile: 'My Profile',
+    profile: 'Profile',
 };
 let appComponents = {
     debug: debugApp_1.DebugApp,
@@ -68393,7 +68393,10 @@ const emitter_1 = require("./emitter");
 let logProfileApp = (...args) => console.log('ProfileApp |', ...args);
 //================================================================================
 let sPage = {
-    padding: 15,
+    margin: 40,
+    padding: 20,
+    borderRadius: 10,
+    backgroundColor: '#e4e4e4',
 };
 class ProfileApp extends React.Component {
     constructor() {
@@ -68404,7 +68407,7 @@ class ProfileApp extends React.Component {
         logProfileApp('subscribing to router changes');
         let router = this.props.router;
         this.unsub = emitter_1.subscribeToMany([
-            //router.onParamsChange,
+            router.onParamsChange,
             router.onWorkspaceChange,
             router.onStorageChange,
         ], throttle(() => this.forceUpdate(), 200));
@@ -68419,37 +68422,44 @@ class ProfileApp extends React.Component {
         if (router.workspace === null) {
             return React.createElement("div", { style: sPage }, "Choose a workspace");
         }
-        if (router.authorKeypair === null) {
+        let layerAbout = router.workspace.layerAbout;
+        let subject = router.params.author;
+        let isMe = false;
+        if (router.authorKeypair !== null) {
+            let myAddress = router.authorKeypair.address;
+            if (!subject || subject === "me") {
+                subject = myAddress;
+            }
+            isMe = subject === myAddress;
+        }
+        if (!subject) {
             return React.createElement("div", { style: sPage }, "Choose an author");
         }
-        let layerAbout = router.workspace.layerAbout;
-        let info = layerAbout.getAuthorInfo(router.authorKeypair.address);
-        let shortname = info ? info.shortname : '(none)';
-        let pubkey = info ? info.pubkey : '(none)';
-        let longname = (info === null || info === void 0 ? void 0 : info.profile.longname) || '(none)';
+        let info = layerAbout.getAuthorInfo(subject);
+        if (info === null) {
+            return React.createElement("div", { style: sPage },
+                "Unparsable author name: ",
+                React.createElement("code", null, JSON.stringify(subject)));
+        }
         return React.createElement("div", { style: sPage },
-            React.createElement("h3", null, "My profile"),
+            React.createElement("h2", null, "Profile"),
+            isMe ? React.createElement("p", null,
+                React.createElement("i", null, "This is you")) : null,
             React.createElement("p", null,
                 React.createElement("code", null,
                     React.createElement("b", null,
                         "@",
-                        shortname),
+                        info.shortname),
                     React.createElement("i", null,
                         ".",
-                        pubkey))),
-            React.createElement("p", null,
-                "Author Address: ",
-                React.createElement("code", null, router.authorKeypair.address)),
-            React.createElement("p", null,
-                "Password: ",
-                React.createElement("code", null, router.authorKeypair.secret)),
+                        info.pubkey))),
             React.createElement("p", null,
                 "Shortname: ",
-                React.createElement("b", null, shortname)),
+                React.createElement("b", null, info.shortname)),
             React.createElement("p", null,
                 "Longname: ",
-                React.createElement("b", null, longname)),
-            React.createElement("h4", null, "Profile info"),
+                React.createElement("b", null, info.profile.longname || '(none)')),
+            React.createElement("h4", null, "Info"),
             React.createElement("pre", null, JSON.stringify(info, null, 4)));
     }
 }
