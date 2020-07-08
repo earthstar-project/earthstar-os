@@ -68029,7 +68029,7 @@ const throttle = require("lodash.throttle");
 const util_1 = require("./util");
 const emitter_1 = require("./emitter");
 const rainbowBug_1 = require("./rainbowBug");
-let logDebug = (...args) => console.log('DebugView |', ...args);
+let logDebugView = (...args) => console.log('DebugView |', ...args);
 let logDebugEmitter = (...args) => console.log('DebugEmitterView |', ...args);
 //================================================================================
 let sPage = {
@@ -68055,18 +68055,20 @@ class DebugEmitterView extends React.Component {
     componentDidMount() {
         logDebugEmitter('subscribing to router changes for ' + this.props.emitter.name);
         this.unsub = this.props.emitter.subscribe(() => {
-            logDebugEmitter('rendering because of an event: ' + this.props.emitter.name);
+            logDebugEmitter('event handler is running; about to render.  event = ' + this.props.emitter.name);
             this.colors.unshift(util_1.randomColor());
             this.colors.pop();
             this.forceUpdate();
         });
     }
     componentWillUnmount() {
+        logDebugEmitter('unsubscribing to router changes');
         if (this.unsub) {
             this.unsub();
         }
     }
     render() {
+        logDebugEmitter('render');
         return React.createElement(rainbowBug_1.RainbowBug, { name: this.props.emitter.name });
     }
 }
@@ -68077,7 +68079,7 @@ class DebugView extends React.Component {
         this.unsub = null;
     }
     componentDidMount() {
-        logDebug('subscribing to router changes');
+        logDebugView('subscribing to router changes');
         let router = this.props.router;
         this.unsub = emitter_1.subscribeToMany([
             router.onParamsChange,
@@ -68085,16 +68087,20 @@ class DebugView extends React.Component {
             router.onWorkspaceChange,
             router.onStorageChange,
             router.onSyncerChange
-        ], throttle(() => this.forceUpdate(), 200));
+        ], throttle(() => {
+            logDebugView('throttled event handler is running, about to render.');
+            this.forceUpdate();
+        }, 200));
     }
     componentWillUnmount() {
+        logDebugView('unsubscribing to router changes');
         if (this.unsub) {
             this.unsub();
         }
     }
     render() {
         var _a;
-        logDebug('render');
+        logDebugView('render');
         let router = this.props.router;
         let workspace = router.workspace;
         let docs = workspace === null ? [] : workspace.storage.documents({ includeHistory: false });
@@ -68238,7 +68244,10 @@ class Earthbar extends React.Component {
             router.onWorkspaceChange,
             router.onAppChange,
             router.onSyncerChange // to update Sync button state
-        ], throttle(() => this.forceUpdate(), 200));
+        ], throttle(() => {
+            logEarthbar('throttled event handler is running, about to render.');
+            this.forceUpdate();
+        }, 200));
     }
     componentWillUnmount() {
         if (this.unsub) {
@@ -68264,8 +68273,7 @@ class Earthbar extends React.Component {
             syncButtonText = 'Syncing';
         }
         return React.createElement("div", { style: sBar },
-            React.createElement("div", { style: { position: 'absolute', top: 0, left: 0 } },
-                React.createElement(rainbowBug_1.RainbowBug, null)),
+            React.createElement(rainbowBug_1.RainbowBug, { position: 'topLeft' }),
             React.createElement("div", { style: Object.assign(Object.assign({}, sBarItem), { zIndex: 1 }) },
                 React.createElement("img", { style: sLogo, src: 'static/img/earthstar-logo-small.png' })),
             React.createElement("div", { style: sBarItem },
@@ -68389,19 +68397,45 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProfileApp = void 0;
 const React = __importStar(require("react"));
 const throttle = require("lodash.throttle");
+const deepEqual = require("fast-deep-equal");
 const emitter_1 = require("./emitter");
+const rainbowBug_1 = require("./rainbowBug");
 let logProfileApp = (...args) => console.log('ProfileApp |', ...args);
 //================================================================================
+let cEggplant = '#5e4d76';
+let cWhite = '#fff';
+let cBlack = '#222';
+let cFaintOpacity = 0.65;
+let cBarText = cBlack;
+let cBarBackground = cWhite;
+let cBarBorder = cEggplant;
+let cButtonBackground = cEggplant;
+let cButtonText = cWhite;
 let sPage = {
     margin: 40,
     padding: 20,
     borderRadius: 10,
     backgroundColor: '#e4e4e4',
+    position: 'relative',
+};
+let sButton = {
+    //padding: 10,
+    height: '2em',
+    //marginLeft: 15,
+    borderRadius: 10,
+    background: cButtonBackground,
+    color: cButtonText,
+    border: 'none',
+    fontSize: 'inherit',
 };
 class ProfileApp extends React.Component {
-    constructor() {
-        super(...arguments);
+    constructor(props) {
+        super(props);
         this.unsub = null;
+        this.state = {
+            editMode: false,
+            editedProfile: {},
+        };
     }
     componentDidMount() {
         logProfileApp('subscribing to router changes');
@@ -68410,17 +68444,64 @@ class ProfileApp extends React.Component {
             router.onParamsChange,
             router.onWorkspaceChange,
             router.onStorageChange,
-        ], throttle(() => this.forceUpdate(), 200));
+        ], throttle(() => {
+            logProfileApp('throttled event handler is running, about to render.');
+            this.forceUpdate();
+        }, 200));
     }
     componentWillUnmount() {
+        logProfileApp('unsubscribing to router changes');
         if (this.unsub) {
             this.unsub();
         }
     }
+    _startEditing(profile) {
+        this.setState({
+            editMode: true,
+            editedProfile: Object.assign({}, profile),
+        });
+    }
+    _saveEdits(oldProfile) {
+        logProfileApp('_saveEdits: begin');
+        if (deepEqual(this.state.editedProfile, oldProfile)) {
+            logProfileApp('_saveEdits: ...nothing was changed.  cancelling.');
+            this._clearEdits();
+            logProfileApp('_saveEdits: ...done');
+            return;
+        }
+        let workspace = this.props.router.workspace;
+        let keypair = this.props.router.authorKeypair;
+        let profile = this.state.editedProfile;
+        if (!profile.longname) {
+            delete profile.longname;
+        }
+        if (!profile.hue) {
+            delete profile.hue;
+        }
+        if (!profile.bio) {
+            delete profile.bio;
+        }
+        if (workspace && keypair) {
+            logProfileApp('_saveEdits: ...saving to workspace storage');
+            workspace.layerAbout.setMyAuthorProfile(keypair, profile);
+        }
+        logProfileApp('_saveEdits: ...setting react state');
+        this._clearEdits();
+        logProfileApp('_saveEdits: ...done');
+    }
+    _clearEdits() {
+        this.setState({
+            editMode: false,
+            editedProfile: {},
+        });
+    }
     render() {
+        logProfileApp('render');
         let router = this.props.router;
         if (router.workspace === null) {
-            return React.createElement("div", { style: sPage }, "Choose a workspace");
+            return React.createElement("div", { style: sPage },
+                React.createElement(rainbowBug_1.RainbowBug, { position: 'topRight' }),
+                "Choose a workspace");
         }
         let layerAbout = router.workspace.layerAbout;
         let subject = router.params.author;
@@ -68433,18 +68514,27 @@ class ProfileApp extends React.Component {
             isMe = subject === myAddress;
         }
         if (!subject) {
-            return React.createElement("div", { style: sPage }, "Choose an author");
-        }
-        let info = layerAbout.getAuthorInfo(subject);
-        if (info === null) {
             return React.createElement("div", { style: sPage },
+                React.createElement(rainbowBug_1.RainbowBug, { position: 'topRight' }),
+                "Choose an author");
+        }
+        let infoOrNull = layerAbout.getAuthorInfo(subject);
+        if (infoOrNull === null) {
+            return React.createElement("div", { style: sPage },
+                React.createElement(rainbowBug_1.RainbowBug, { position: 'topRight' }),
                 "Unparsable author name: ",
                 React.createElement("code", null, JSON.stringify(subject)));
         }
+        let editMode = this.state.editMode;
+        let info = infoOrNull;
         return React.createElement("div", { style: sPage },
+            React.createElement(rainbowBug_1.RainbowBug, { position: 'topRight' }),
             React.createElement("h2", null, "Profile"),
             isMe ? React.createElement("p", null,
-                React.createElement("i", null, "This is you")) : null,
+                React.createElement("i", null, "This is you. "),
+                editMode
+                    ? React.createElement("button", { style: sButton, onClick: () => this._saveEdits(info.profile) }, "Save")
+                    : React.createElement("button", { style: sButton, onClick: () => this._startEditing(info.profile) }, "Edit")) : null,
             React.createElement("p", null,
                 React.createElement("code", null,
                     React.createElement("b", null,
@@ -68458,14 +68548,16 @@ class ProfileApp extends React.Component {
                 React.createElement("b", null, info.shortname)),
             React.createElement("p", null,
                 "Longname: ",
-                React.createElement("b", null, info.profile.longname || '(none)')),
+                editMode
+                    ? React.createElement("input", { type: "text", style: { width: '50%', padding: 5, fontWeight: 'bold' }, placeholder: "(none)", value: this.state.editedProfile.longname || '', onChange: (e) => this.setState({ editedProfile: Object.assign(Object.assign({}, this.state.editedProfile), { longname: e.target.value }) }) })
+                    : React.createElement("b", null, info.profile.longname || '(none)')),
             React.createElement("h4", null, "Info"),
             React.createElement("pre", null, JSON.stringify(info, null, 4)));
     }
 }
 exports.ProfileApp = ProfileApp;
 
-},{"./emitter":274,"lodash.throttle":174,"react":225}],276:[function(require,module,exports){
+},{"./emitter":274,"./rainbowBug":276,"fast-deep-equal":134,"lodash.throttle":174,"react":225}],276:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -68490,29 +68582,46 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RainbowBug = void 0;
 const React = __importStar(require("react"));
 const util_1 = require("./util");
+let sOuter = {
+    display: 'inline-block',
+    padding: 5,
+    borderRadius: 3,
+    marginRight: 10,
+};
+let sTopLeft = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    marginRight: 0,
+};
+let sTopRight = {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    marginRight: 0,
+};
+let sInner = {
+    display: 'inline-block',
+    height: '1.2em',
+    width: '0.5em',
+    border: '1px solid black',
+};
+let blank = ['white', 'white', 'white', 'white', 'white', 'white', 'white'];
 class RainbowBug extends React.Component {
     constructor() {
         super(...arguments);
-        this.colors = ['white', 'white', 'white', 'white', 'white', 'white', 'white'];
+        this.colors = [...blank];
+    }
+    _clear() {
+        this.colors = [...blank];
+        this.forceUpdate();
     }
     render() {
         this.colors.unshift(util_1.randomColor());
         this.colors.pop();
-        return React.createElement("div", { style: {
-                backgroundColor: this.colors[0],
-                display: 'inline-block',
-                padding: 5,
-                borderRadius: 3,
-                marginRight: 10,
-            } },
+        return React.createElement("div", { style: Object.assign(Object.assign(Object.assign(Object.assign({}, sOuter), (this.props.position === 'topLeft' ? sTopLeft : {})), (this.props.position === 'topRight' ? sTopRight : {})), { backgroundColor: this.colors[0] }), onClick: () => this._clear() },
             this.props.name ? this.props.name + ' ' : null,
-            this.colors.map((c, ii) => React.createElement("div", { key: ii, style: {
-                    display: 'inline-block',
-                    height: '1.2em',
-                    width: '0.5em',
-                    backgroundColor: c,
-                    border: '1px solid black',
-                } })));
+            this.colors.map((c, ii) => React.createElement("div", { key: ii, style: Object.assign(Object.assign({}, sInner), { backgroundColor: c }) })));
     }
 }
 exports.RainbowBug = RainbowBug;

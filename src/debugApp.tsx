@@ -14,7 +14,7 @@ import { AppProps } from './appSwitcher';
 import { Emitter, subscribeToMany } from './emitter';
 import { RainbowBug } from './rainbowBug';
 
-let logDebug = (...args : any[]) => console.log('DebugView |', ...args);
+let logDebugView = (...args : any[]) => console.log('DebugView |', ...args);
 let logDebugEmitter = (...args : any[]) => console.log('DebugEmitterView |', ...args);
 
 //================================================================================
@@ -48,16 +48,18 @@ export class DebugEmitterView extends React.Component<DebugEmitterViewProps, any
     componentDidMount() {
         logDebugEmitter('subscribing to router changes for ' + this.props.emitter.name);
         this.unsub = this.props.emitter.subscribe(() => {
-            logDebugEmitter('rendering because of an event: ' + this.props.emitter.name);
+            logDebugEmitter('event handler is running; about to render.  event = ' + this.props.emitter.name);
             this.colors.unshift(randomColor());
             this.colors.pop();
             this.forceUpdate();
         });
     }
     componentWillUnmount() {
+        logDebugEmitter('unsubscribing to router changes');
         if (this.unsub) { this.unsub(); }
     }
     render() {
+        logDebugEmitter('render');
         return <RainbowBug name={this.props.emitter.name} />;
     }
 }
@@ -70,7 +72,7 @@ interface DebugViewProps {
 export class DebugView extends React.Component<DebugViewProps, any> {
     unsub : Thunk | null = null;
     componentDidMount() {
-        logDebug('subscribing to router changes');
+        logDebugView('subscribing to router changes');
         let router = this.props.router;
         this.unsub = subscribeToMany<any>(
             [
@@ -80,14 +82,18 @@ export class DebugView extends React.Component<DebugViewProps, any> {
                 router.onStorageChange,
                 router.onSyncerChange
             ],
-            throttle(() => this.forceUpdate(), 200)
+            throttle(() => {
+                logDebugView('throttled event handler is running, about to render.');
+                this.forceUpdate()
+            }, 200)
         );
     }
     componentWillUnmount() {
+        logDebugView('unsubscribing to router changes');
         if (this.unsub) { this.unsub(); }
     }
     render() {
-        logDebug('render');
+        logDebugView('render');
         let router = this.props.router;
         let workspace = router.workspace;
         let docs : Document[] = workspace === null ? [] : workspace.storage.documents({ includeHistory: false });

@@ -84,7 +84,10 @@ export class Earthbar extends React.Component<EarthbarProps, any> {
                 router.onAppChange,
                 router.onSyncerChange  // to update Sync button state
             ],
-            throttle(() => this.forceUpdate(), 200)
+            throttle(() => {
+                logEarthbar('throttled event handler is running, about to render.');
+                this.forceUpdate()
+            }, 200)
         );
     }
     componentWillUnmount() {
@@ -108,9 +111,7 @@ export class Earthbar extends React.Component<EarthbarProps, any> {
         if (isSyncing) { syncButtonText = 'Syncing'; }
 
         return <div style={sBar}>
-            <div style={{position: 'absolute', top: 0, left: 0}}>
-                <RainbowBug />
-            </div>
+            <RainbowBug position='topLeft' />
             <div style={{...sBarItem, zIndex: 1}}>
                 <img style={sLogo} src='static/img/earthstar-logo-small.png' />
             </div>
