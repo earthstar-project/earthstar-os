@@ -34,7 +34,7 @@ export let DebugApp : React.FunctionComponent<AppProps> = (props) =>
             <DebugEmitterView emitter={props.router.onSyncerChange} />
         </div>
         <hr />
-        <DebugView key="debug" router={props.router} />,
+        <DebugView key="debug" router={props.router} />
     </div>;
 
 //================================================================================

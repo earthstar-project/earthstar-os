@@ -166,27 +166,37 @@ export class ProfileApp extends React.Component<AppProps, ProfileAppState> {
         return <div style={sPage}>
             <RainbowBug position='topRight' />
 
-            <p>
-                <select value={subject}
-                    onChange={(e) => {logProfileApp('TODO: change author hash param to:', e.target.value)}}
-                    >
-                    {allAuthorInfos.map(authorInfo =>
-                        <option key={authorInfo.address} value={authorInfo.address}>
-                            @{authorInfo.shortname}.{authorInfo.pubkey.slice(0, 10)}...{authorInfo.profile.longname ? ' -- ' + authorInfo.profile.longname : null}
-                        </option>
-                    )}
-                </select>
-            </p>
+            {/* author switcher dropdown */}
+            {allAuthorInfos.length === 0
+              ? null
+              : <p>
+                    <select value={subject}
+                        onChange={(e) => {
+                            logProfileApp('change author hash param to:', e.target.value);
+                            router.setParams({...router.params, author: e.target.value});
+                        }}
+                        >
+                        {allAuthorInfos.map(authorInfo =>
+                            <option key={authorInfo.address} value={authorInfo.address}>
+                                @{authorInfo.shortname}.{authorInfo.pubkey.slice(0, 10)}...{authorInfo.profile.longname ? ' -- ' + authorInfo.profile.longname : null}
+                            </option>
+                        )}
+                    </select>
+                </p>
+            }
 
             {/* profile pic */}
             <p>
-                <div style={{
+                <span style={{
+                    display: 'inline-block',
                     width: 100,
                     height: 100,
                     borderRadius: 100,
                     backgroundColor: color,
                 }}/>
             </p>
+
+            {/* edit buttons */}
             {isMe ? <p>
                 <i>This is you. </i>
                 {editMode
@@ -198,6 +208,8 @@ export class ProfileApp extends React.Component<AppProps, ProfileAppState> {
                 </button>
                 }
             </p> : null}
+
+            {/* shortname and longname */}
             <p><code><b style={{fontSize: '1.25em'}}>@{info.shortname}</b><i>.{info.pubkey}</i></code></p>
             {info.profile.longname
               ? <p style={{fontSize: '1.25em'}}>{
@@ -213,6 +225,7 @@ export class ProfileApp extends React.Component<AppProps, ProfileAppState> {
                 </p>
               : null
             }
+            {/* json view */}
             <hr />
             <pre>{JSON.stringify(info, null, 4)}</pre>
         </div>;

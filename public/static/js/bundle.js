@@ -68044,8 +68044,7 @@ exports.DebugApp = (props) => React.createElement("div", { style: sPage },
         React.createElement(DebugEmitterView, { emitter: props.router.onStorageChange }),
         React.createElement(DebugEmitterView, { emitter: props.router.onSyncerChange })),
     React.createElement("hr", null),
-    React.createElement(DebugView, { key: "debug", router: props.router }),
-    ",");
+    React.createElement(DebugView, { key: "debug", router: props.router }));
 class DebugEmitterView extends React.Component {
     constructor() {
         super(...arguments);
@@ -68537,16 +68536,22 @@ class ProfileApp extends React.Component {
         //                        onChange={(e) => router.setWorkspace(e.target.value == 'null' ? null : e.target.value)}
         return React.createElement("div", { style: sPage },
             React.createElement(rainbowBug_1.RainbowBug, { position: 'topRight' }),
+            allAuthorInfos.length === 0
+                ? null
+                : React.createElement("p", null,
+                    React.createElement("select", { value: subject, onChange: (e) => {
+                            logProfileApp('change author hash param to:', e.target.value);
+                            router.setParams(Object.assign(Object.assign({}, router.params), { author: e.target.value }));
+                        } }, allAuthorInfos.map(authorInfo => React.createElement("option", { key: authorInfo.address, value: authorInfo.address },
+                        "@",
+                        authorInfo.shortname,
+                        ".",
+                        authorInfo.pubkey.slice(0, 10),
+                        "...",
+                        authorInfo.profile.longname ? ' -- ' + authorInfo.profile.longname : null)))),
             React.createElement("p", null,
-                React.createElement("select", { value: subject, onChange: (e) => { logProfileApp('TODO: change author hash param to:', e.target.value); } }, allAuthorInfos.map(authorInfo => React.createElement("option", { key: authorInfo.address, value: authorInfo.address },
-                    "@",
-                    authorInfo.shortname,
-                    ".",
-                    authorInfo.pubkey.slice(0, 10),
-                    "...",
-                    authorInfo.profile.longname ? ' -- ' + authorInfo.profile.longname : null)))),
-            React.createElement("p", null,
-                React.createElement("div", { style: {
+                React.createElement("span", { style: {
+                        display: 'inline-block',
                         width: 100,
                         height: 100,
                         borderRadius: 100,
@@ -68937,6 +68942,27 @@ class EarthstarRouter {
         // this will send onAppChange event for us
         setHashParams(newParams);
         log('Router.setApp() | ...done');
+    }
+    setParams(params) {
+        // This only lets you set normal params, not special params (app, workspace).
+        // It replaces all normal params, it doesn't update them.
+        // (e.g. if you omit a param, it will be deleted)
+        log('Router.setParams() | ', params);
+        let oldNonSpecialParams = Object.assign({}, this.params);
+        delete oldNonSpecialParams.app;
+        delete oldNonSpecialParams.workspace;
+        let newNonSpecialParams = Object.assign({}, params);
+        delete newNonSpecialParams.app;
+        delete newNonSpecialParams.workspace;
+        if (deepEqual(oldNonSpecialParams, newNonSpecialParams)) {
+            log('Router.setParams() | ...no change, doing nothing.  done.');
+            return;
+        }
+        let newParams = Object.assign(Object.assign({}, params), { app: this.params.app, workspace: this.params.workspace });
+        log('Router.setParams() | ...setting hash params', newParams);
+        // this will also send an onParamsChange for us
+        setHashParams(newParams);
+        log('Router.setParams() | ...done');
     }
 }
 exports.EarthstarRouter = EarthstarRouter;

@@ -322,4 +322,29 @@ export class EarthstarRouter {
         setHashParams(newParams);
         log('Router.setApp() | ...done');
     }
+    setParams(params : String2String) {
+        // This only lets you set normal params, not special params (app, workspace).
+        // It replaces all normal params, it doesn't update them.
+        // (e.g. if you omit a param, it will be deleted)
+        log('Router.setParams() | ', params);
+        let oldNonSpecialParams = {...this.params};
+        delete oldNonSpecialParams.app;
+        delete oldNonSpecialParams.workspace;
+        let newNonSpecialParams = {...params};
+        delete newNonSpecialParams.app;
+        delete newNonSpecialParams.workspace;
+        if (deepEqual(oldNonSpecialParams, newNonSpecialParams)) {
+            log('Router.setParams() | ...no change, doing nothing.  done.');
+            return;
+        }
+        let newParams = {
+            ...params,
+            app: this.params.app,
+            workspace: this.params.workspace,
+        }
+        log('Router.setParams() | ...setting hash params', newParams);
+        // this will also send an onParamsChange for us
+        setHashParams(newParams);
+        log('Router.setParams() | ...done');
+    }
 }
