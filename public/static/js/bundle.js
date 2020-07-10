@@ -67905,7 +67905,7 @@ const profileApp_1 = require("./profileApp");
 let appsAndNames = {
     debug: 'Debug View',
     chess: 'Chess',
-    profile: 'Profile',
+    profile: 'Profile Viewer',
 };
 let appComponents = {
     debug: debugApp_1.DebugApp,
@@ -68464,7 +68464,7 @@ let sColumn = {
 };
 let sCard = {
     padding: 20,
-    borderRadius: 10,
+    borderRadius: 5,
     backgroundColor: cCardBg,
     position: 'relative',
 };
@@ -68472,7 +68472,7 @@ let sCardFlexbox = Object.assign(Object.assign({}, sCard), { display: 'flex' });
 let sCardLeft = {
     flexShrink: 0,
     flexGrow: 0,
-    paddingRight: 15,
+    paddingRight: 20,
 };
 let sCardRight = {
     flexShrink: 1,
@@ -68490,6 +68490,13 @@ let sButton = {
 };
 let sSelect = {
     color: 'black',
+};
+let sProfilePic = {
+    display: 'inline-block',
+    width: 90,
+    height: 90,
+    borderRadius: 300,
+    backgroundColor: '#aaa',
 };
 class ProfileApp extends React.Component {
     constructor(props) {
@@ -68559,8 +68566,12 @@ class ProfileApp extends React.Component {
         });
     }
     render() {
+        var _a;
         logProfileApp('render');
         let router = this.props.router;
+        let isEditing = this.state.isEditing;
+        let DROPDOWN = null;
+        let CARD = null;
         // not in a workspace?  show an error
         if (router.workspace === null) {
             return React.createElement("div", { style: sPage },
@@ -68572,53 +68583,32 @@ class ProfileApp extends React.Component {
         let layerAbout = router.workspace.layerAbout;
         // the subject is the author to display the profile for.
         // get it from the router params...
-        let subject = router.params.author;
-        if (!subject || subject === 'me') {
+        let subjectAddress = router.params.author;
+        if (!subjectAddress || subjectAddress === 'me') {
             // if router params are missing or "me", use the current logged-in user as the subject
             if (router.authorKeypair !== null) {
-                subject = router.authorKeypair.address;
+                subjectAddress = router.authorKeypair.address;
+            }
+            else {
+                subjectAddress = null;
             }
         }
-        // we couldn't figure out who the subject is?  show an error
-        if (!subject || subject === 'me') {
-            return React.createElement("div", { style: sPage },
-                React.createElement("div", { style: sColumn },
-                    React.createElement(rainbowBug_1.RainbowBug, { position: 'topLeft' }),
-                    React.createElement("h2", null, "Profile"),
-                    React.createElement("div", { style: sCard }, "(Choose an author)")));
-        }
         // look up info for the subject
-        let subjectInfoOrNull = layerAbout.getAuthorInfo(subject);
-        if (subjectInfoOrNull === null) {
-            // malformed subject author address, show an error
-            return React.createElement("div", { style: sPage },
-                React.createElement("div", { style: sColumn },
-                    React.createElement(rainbowBug_1.RainbowBug, { position: 'topLeft' }),
-                    React.createElement("h2", null, "Profile"),
-                    React.createElement("div", { style: sCard },
-                        "(Unparsable author name: ",
-                        React.createElement("code", null, JSON.stringify(subject)),
-                        ")")));
-        }
-        let subjectInfo = subjectInfoOrNull;
+        let subjectInfo = subjectAddress === null ? null : layerAbout.getAuthorInfo(subjectAddress);
         // get the logged-in user's info
-        let myInfoOrNull = null;
+        let myAddress = ((_a = router.authorKeypair) === null || _a === void 0 ? void 0 : _a.address) || null;
+        let myInfo = null;
         let isMe = false;
-        if (router.authorKeypair !== null) {
-            myInfoOrNull = layerAbout.getAuthorInfo(router.authorKeypair.address);
-            isMe = subject === router.authorKeypair.address;
+        if (myAddress !== null) {
+            myInfo = layerAbout.getAuthorInfo(myAddress);
+            isMe = subjectAddress === myAddress;
         }
-        let isEditing = this.state.isEditing;
-        let subjectHueRaw = isEditing ? this.state.editedProfile.hue : subjectInfo.profile.hue;
-        let subjectHue = typeof subjectHueRaw === 'number' ? subjectHueRaw : null;
-        let subjectColor = (subjectHue === null) ? '#aaa' : `hsl(${subjectHue}, 50%, 50%)`;
-        logProfileApp('HUE', subjectHueRaw, subjectHue, subjectColor);
         // make list of authors, for dropdown
         // authors come from 3 sources:
         //   authors who have written into this workspace
         //   the subject (from the hash params), may or may not have written in the workspace
         //   the logged-in author, may or may not have written in the workspace
-        let addAuthorToList = (arr, authorInfo) => {
+        let addAuthorInfoToList = (arr, authorInfo) => {
             if (authorInfo === null) {
                 return;
             }
@@ -68630,68 +68620,79 @@ class ProfileApp extends React.Component {
             arr.push(authorInfo);
         };
         let allAuthorInfos = layerAbout.listAuthorInfos();
-        addAuthorToList(allAuthorInfos, myInfoOrNull);
-        addAuthorToList(allAuthorInfos, subjectInfo);
+        addAuthorInfoToList(allAuthorInfos, myInfo);
+        addAuthorInfoToList(allAuthorInfos, subjectInfo);
         util_1.sortByKey(allAuthorInfos, info => info.address);
+        if (allAuthorInfos.length > 0) {
+            DROPDOWN = React.createElement("p", null,
+                "View the profile of ",
+                React.createElement("select", { value: subjectInfo === null ? '' : subjectInfo.address, style: sSelect, onChange: (e) => {
+                        if (e.target.value === '') {
+                            return;
+                        } // spacer
+                        logProfileApp('change author hash param to:', e.target.value);
+                        router.setParams(Object.assign(Object.assign({}, router.params), { author: e.target.value }));
+                    } },
+                    subjectInfo === null
+                        ? React.createElement("option", { key: "nobody", value: "" }, "---")
+                        : null,
+                    allAuthorInfos.map(authorInfo => React.createElement("option", { key: authorInfo.address, value: authorInfo.address },
+                        "@",
+                        authorInfo.shortname,
+                        ".",
+                        util_1.ellipsify(authorInfo.pubkey, 9),
+                        authorInfo.profile.longname ? ' -- ' + util_1.ellipsify(authorInfo.profile.longname, 40) : null))));
+        }
+        if (subjectInfo === null) {
+            CARD = null; //<div style={sCard}>Choose an author.</div>;
+        }
+        else {
+            let subjectHueRaw = isEditing ? this.state.editedProfile.hue : subjectInfo.profile.hue;
+            let subjectHue = typeof subjectHueRaw === 'number' ? subjectHueRaw : null;
+            let subjectColor = (subjectHue === null) ? '#aaa' : `hsl(${subjectHue}, 50%, 50%)`;
+            let profile = subjectInfo.profile;
+            CARD = React.createElement("div", { style: sCardFlexbox },
+                React.createElement("div", { style: sCardLeft },
+                    React.createElement("div", { style: Object.assign(Object.assign({}, sProfilePic), { backgroundColor: subjectColor }) })),
+                React.createElement("div", { style: sCardRight },
+                    React.createElement("div", null,
+                        React.createElement("code", null,
+                            React.createElement("b", { style: sLargeText },
+                                "@",
+                                subjectInfo.shortname),
+                            React.createElement("i", { style: sFaint },
+                                ".",
+                                subjectInfo.pubkey))),
+                    React.createElement("p", { style: sLargeText }, isEditing
+                        ? React.createElement("input", { type: "text", style: { width: '85%', padding: 5, fontWeight: 'bold' }, placeholder: "(no longname)", value: this.state.editedProfile.longname || '', onChange: (e) => this.setState({ editedProfile: Object.assign(Object.assign({}, this.state.editedProfile), { longname: e.target.value }) }) })
+                        : subjectInfo.profile.longname
+                            ? React.createElement("b", null, subjectInfo.profile.longname)
+                            : null),
+                    isMe ? React.createElement("p", null,
+                        React.createElement("i", null, "This is you. "),
+                        isEditing
+                            ? React.createElement("button", { style: sButton, onClick: () => this._saveEdits(profile) }, "Save")
+                            : React.createElement("button", { style: sButton, onClick: () => this._startEditing(profile) }, "Edit")) : null,
+                    isEditing
+                        ? React.createElement("p", null,
+                            "Color:",
+                            React.createElement("input", { type: "range", min: "0", max: "359", step: "1", value: subjectHue === null ? 90 : subjectHue, onChange: (e) => {
+                                    let hue = util_1.parseNum(e.target.value);
+                                    if (hue !== null) {
+                                        this.setState({ editedProfile: Object.assign(Object.assign({}, this.state.editedProfile), { hue: hue }) });
+                                    }
+                                } }))
+                        : null));
+        }
         return React.createElement("div", { style: sPage },
             React.createElement("div", { style: sColumn },
                 React.createElement(rainbowBug_1.RainbowBug, { position: 'topLeft' }),
-                React.createElement("h2", null, "Profile"),
-                allAuthorInfos.length === 0
-                    ? null
-                    : React.createElement("p", null,
-                        React.createElement("select", { value: subjectInfo.address, style: sSelect, onChange: (e) => {
-                                if (e.target.value === '') {
-                                    return;
-                                } // spacer
-                                logProfileApp('change author hash param to:', e.target.value);
-                                router.setParams(Object.assign(Object.assign({}, router.params), { author: e.target.value }));
-                            } }, allAuthorInfos.map(authorInfo => React.createElement("option", { key: authorInfo.address, value: authorInfo.address },
-                            "@",
-                            authorInfo.shortname,
-                            ".",
-                            util_1.ellipsify(authorInfo.pubkey, 9),
-                            authorInfo.profile.longname ? ' -- ' + util_1.ellipsify(authorInfo.profile.longname, 40) : null)))),
-                React.createElement("div", { style: sCardFlexbox },
-                    React.createElement("div", { style: sCardLeft },
-                        React.createElement("p", null,
-                            React.createElement("span", { style: {
-                                    display: 'inline-block',
-                                    width: 100,
-                                    height: 100,
-                                    borderRadius: 100,
-                                    backgroundColor: subjectColor,
-                                } }))),
-                    React.createElement("div", { style: sCardRight },
-                        React.createElement("p", null,
-                            React.createElement("code", null,
-                                React.createElement("b", { style: sLargeText },
-                                    "@",
-                                    subjectInfo.shortname),
-                                React.createElement("i", { style: sFaint },
-                                    ".",
-                                    subjectInfo.pubkey))),
-                        React.createElement("p", { style: sLargeText }, isEditing
-                            ? React.createElement("input", { type: "text", style: { width: '85%', padding: 5, fontWeight: 'bold' }, placeholder: "(no longname)", value: this.state.editedProfile.longname || '', onChange: (e) => this.setState({ editedProfile: Object.assign(Object.assign({}, this.state.editedProfile), { longname: e.target.value }) }) })
-                            : subjectInfo.profile.longname
-                                ? React.createElement("b", null, subjectInfo.profile.longname)
-                                : React.createElement("i", { style: sFaint }, "(no longname)")),
-                        isMe ? React.createElement("p", null,
-                            React.createElement("i", null, "This is you. "),
-                            isEditing
-                                ? React.createElement("button", { style: sButton, onClick: () => this._saveEdits(subjectInfo.profile) }, "Save")
-                                : React.createElement("button", { style: sButton, onClick: () => this._startEditing(subjectInfo.profile) }, "Edit")) : null,
-                        isEditing
-                            ? React.createElement("p", null,
-                                "Color:",
-                                React.createElement("input", { type: "range", min: "0", max: "359", step: "1", value: subjectHue === null ? 90 : subjectHue, onChange: (e) => {
-                                        let hue = util_1.parseNum(e.target.value);
-                                        if (hue !== null) {
-                                            this.setState({ editedProfile: Object.assign(Object.assign({}, this.state.editedProfile), { hue: hue }) });
-                                        }
-                                    } }))
-                            : null)),
-                React.createElement("pre", { style: Object.assign(Object.assign({}, sFaint), { overflow: 'visible' }) }, JSON.stringify(subjectInfo, null, 4))));
+                React.createElement("h1", null, "Profile Viewer"),
+                DROPDOWN,
+                React.createElement("div", { style: { height: 30 } }),
+                CARD,
+                subjectInfo === null ? null :
+                    React.createElement("pre", { style: Object.assign(Object.assign({}, sFaint), { paddingTop: 60, overflow: 'visible' }) }, JSON.stringify(subjectInfo, null, 4))));
     }
 }
 exports.ProfileApp = ProfileApp;
