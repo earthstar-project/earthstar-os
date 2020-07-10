@@ -16,26 +16,45 @@ import { AppProps } from './appSwitcher';
 import { Emitter, subscribeToMany } from './emitter';
 import { RainbowBug } from './rainbowBug';
 
+import { theme } from './base16/base16-atelier-heath-light';
+
 let logProfileApp = (...args : any[]) => console.log('ProfileApp |', ...args);
 
 //================================================================================
 
-let cEggplant = '#5e4d76';
-let cWhite = '#fff';
-let cBlack = '#222';
-let cFaintOpacity = 0.65;
+let cRed = theme.base08;
+let cOrange = theme.base09;
+let cYellow = theme.base0A;
+let cGreen = theme.base0B;
+let cCyan = theme.base0C;
+let cBlue = theme.base0D;
+let cViolet = theme.base0E;
+let cMagenta = theme.base0F;
 
-let cBarText = cBlack;
-let cBarBackground = cWhite;
-let cBarBorder = cEggplant;
-let cButtonBackground = cEggplant;
-let cButtonText = cWhite;
+let cCardBg = theme.base00;
+let cPageBg = theme.base02;
+let cText = theme.base07;
+let cButtonBg = cViolet;
+let cButtonText = theme.base00;
 
 let sPage : React.CSSProperties = {
-    margin: 40,
+    padding: 20,
+    paddingTop: 40,
+    minHeight: '105vh',
+    backgroundColor: cPageBg,
+    color: cText,
+    fontFamily: 'Georgia, serif',
+    position: 'relative',
+}
+let sColumn : React.CSSProperties = {
+    maxWidth: '40rem',
+    marginLeft: 'auto',
+    marginRight: 'auto',
+}
+let sCard : React.CSSProperties = {
     padding: 20,
     borderRadius: 10,
-    backgroundColor: '#e4e4e4',
+    backgroundColor: cCardBg,
     position: 'relative',
 }
 let sButton : React.CSSProperties = {
@@ -43,7 +62,7 @@ let sButton : React.CSSProperties = {
     height: '2em',
     //marginLeft: 15,
     borderRadius: 10,
-    background: cButtonBackground,
+    background: cButtonBg,
     color: cButtonText,
     border: 'none',
     fontSize: 'inherit',
@@ -119,10 +138,13 @@ export class ProfileApp extends React.Component<AppProps, ProfileAppState> {
         logProfileApp('render');
         let router = this.props.router;
         if (router.workspace === null) {
-            return <div style={sPage}>
-                <RainbowBug position='topRight' />
-                Choose a workspace
-            </div>;
+            return <div style={sPage}><div style={sColumn}>
+                <RainbowBug position='topLeft' />
+                <h2>Profile</h2>
+                <div style={sCard}>
+                    (Choose a workspace)
+                </div>
+            </div></div>;
         }
         let layerAbout = router.workspace.layerAbout;
 
@@ -137,18 +159,24 @@ export class ProfileApp extends React.Component<AppProps, ProfileAppState> {
         }
 
         if (!subject) {
-            return <div style={sPage}>
-                <RainbowBug position='topRight' />
-                Choose an author
-            </div>;
+            return <div style={sPage}><div style={sColumn}>
+                <RainbowBug position='topLeft' />
+                <h2>Profile</h2>
+                <div style={sCard}>
+                    (Choose an author)
+                </div>
+            </div></div>;
         }
 
         let infoOrNull = layerAbout.getAuthorInfo(subject);
         if (infoOrNull === null) {
-            return <div style={sPage}>
-                <RainbowBug position='topRight' />
-                Unparsable author name: <code>{JSON.stringify(subject)}</code>
-            </div>;
+            return <div style={sPage}><div style={sColumn}>
+                <RainbowBug position='topLeft' />
+                <h2>Profile</h2>
+                <div style={sCard}>
+                    (Unparsable author name: <code>{JSON.stringify(subject)}</code>)
+                </div>
+            </div></div>;
         }
         let editMode = this.state.editMode;
         let info = infoOrNull;
@@ -163,68 +191,75 @@ export class ProfileApp extends React.Component<AppProps, ProfileAppState> {
 //                        value={router.workspaceAddress || 'null'}
 //                        onChange={(e) => router.setWorkspace(e.target.value == 'null' ? null : e.target.value)}
 
-        return <div style={sPage}>
-            <RainbowBug position='topRight' />
-
-            {/* author switcher dropdown */}
-            {allAuthorInfos.length === 0
-              ? null
-              : <p>
-                    <select value={subject}
-                        onChange={(e) => {
-                            logProfileApp('change author hash param to:', e.target.value);
-                            router.setParams({...router.params, author: e.target.value});
-                        }}
-                        >
-                        {allAuthorInfos.map(authorInfo =>
-                            <option key={authorInfo.address} value={authorInfo.address}>
-                                @{authorInfo.shortname}.{authorInfo.pubkey.slice(0, 10)}...{authorInfo.profile.longname ? ' -- ' + authorInfo.profile.longname : null}
+        return <div style={sPage}><div style={sColumn}>
+            <RainbowBug position='topLeft' />
+            <h2>Profile</h2>
+                {/* author switcher dropdown */}
+                {allAuthorInfos.length === 0
+                ? null
+                : <p>
+                        <select value={info.address}
+                            onChange={(e) => {
+                                if (e.target.value === '') { return; }  // spacer
+                                logProfileApp('change author hash param to:', e.target.value);
+                                router.setParams({...router.params, author: e.target.value});
+                            }}
+                            >
+                            <option key="me" value={info.address}>
+                                @{info.shortname}.{info.pubkey.slice(0, 10)}...{info.profile.longname ? ' -- ' + info.profile.longname : null}
                             </option>
-                        )}
-                    </select>
+                            <option key="spacer" value="">---</option>
+                            {allAuthorInfos.map(authorInfo =>
+                                <option key={authorInfo.address} value={authorInfo.address}>
+                                    @{authorInfo.shortname}.{authorInfo.pubkey.slice(0, 10)}...{authorInfo.profile.longname ? ' -- ' + authorInfo.profile.longname : null}
+                                </option>
+                            )}
+                        </select>
+                    </p>
+                }
+            <div style={sCard}>
+
+                {/* profile pic */}
+                <p>
+                    <span style={{
+                        display: 'inline-block',
+                        width: 100,
+                        height: 100,
+                        borderRadius: 100,
+                        backgroundColor: color,
+                    }}/>
                 </p>
-            }
 
-            {/* profile pic */}
-            <p>
-                <span style={{
-                    display: 'inline-block',
-                    width: 100,
-                    height: 100,
-                    borderRadius: 100,
-                    backgroundColor: color,
-                }}/>
-            </p>
+                {/* edit buttons */}
+                {isMe ? <p>
+                    <i>This is you. </i>
+                    {editMode
+                    ? <button style={sButton} onClick={() => this._saveEdits(info.profile)}>
+                        Save
+                    </button>
+                    : <button style={sButton} onClick={() => this._startEditing(info.profile)}>
+                        Edit
+                    </button>
+                    }
+                </p> : null}
 
-            {/* edit buttons */}
-            {isMe ? <p>
-                <i>This is you. </i>
-                {editMode
-                ? <button style={sButton} onClick={() => this._saveEdits(info.profile)}>
-                    Save
-                </button>
-                : <button style={sButton} onClick={() => this._startEditing(info.profile)}>
-                    Edit
-                </button>
-                }
-            </p> : null}
-
-            {/* shortname and longname */}
-            <p><code><b style={{fontSize: '1.25em'}}>@{info.shortname}</b><i>.{info.pubkey}</i></code></p>
-            <p style={{fontSize: '1.25em'}}>{
-                editMode
-                ? <input type="text"
-                        style={{width: '50%', padding: 5, fontWeight: 'bold'}}
-                        placeholder="(none)"
-                        value={this.state.editedProfile.longname || ''}
-                        onChange={(e: any) => this.setState({editedProfile: {...this.state.editedProfile, longname: e.target.value}})}
-                        />
-                : <b>{info.profile.longname || '(no longname set)'}</b>
-                }
-            </p>
-            {/* json view */}
-            <hr />
-            <pre>{JSON.stringify(info, null, 4)}</pre>
-        </div>;
+                {/* shortname and longname */}
+                <p><code><b style={{fontSize: '1.25em'}}>@{info.shortname}</b><i>.{info.pubkey}</i></code></p>
+                <p style={{fontSize: '1.25em'}}>{
+                    editMode
+                    ? <input type="text"
+                            style={{width: '50%', padding: 5, fontWeight: 'bold'}}
+                            placeholder="(none)"
+                            value={this.state.editedProfile.longname || ''}
+                            onChange={(e: any) => this.setState({editedProfile: {...this.state.editedProfile, longname: e.target.value}})}
+                            />
+                    : <b>{info.profile.longname || '(no longname set)'}</b>
+                    }
+                </p>
+                {/* json view */}
+                <hr />
+                <pre>{JSON.stringify(info, null, 4)}</pre>
+            </div>
+        </div></div>;
     }
 }

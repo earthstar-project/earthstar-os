@@ -67945,7 +67945,7 @@ ReactDOM.render([
     React.createElement(appSwitcher_1.AppSwitcher, { key: "appSwitcher", router: router, appComponents: appComponents }),
 ], document.getElementById('react-slot'));
 
-},{"./appSwitcher":271,"./debugApp":272,"./earthbar":273,"./profileApp":275,"./router":277,"react":225,"react-dom":222}],271:[function(require,module,exports){
+},{"./appSwitcher":271,"./debugApp":273,"./earthbar":274,"./profileApp":276,"./router":278,"react":225,"react-dom":222}],271:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -68002,6 +68002,32 @@ class AppSwitcher extends React.Component {
 exports.AppSwitcher = AppSwitcher;
 
 },{"react":225}],272:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.theme = void 0;
+exports.theme = {
+    name: "Atelier Heath Light",
+    author: "Bram de Haan (http:&#x2F;&#x2F;atelierbramdehaan.nl)",
+    slug: "atelier-heath-light",
+    base00: "#f7f3f7",
+    base01: "#d8cad8",
+    base02: "#ab9bab",
+    base03: "#9e8f9e",
+    base04: "#776977",
+    base05: "#695d69",
+    base06: "#292329",
+    base07: "#1b181b",
+    base08: "#ca402b",
+    base09: "#a65926",
+    base0A: "#bb8a35",
+    base0B: "#918b3b",
+    base0C: "#159393",
+    base0D: "#516aec",
+    base0E: "#7b59c0",
+    base0F: "#cc33cc",
+};
+
+},{}],273:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -68145,7 +68171,7 @@ class DebugView extends React.Component {
 }
 exports.DebugView = DebugView;
 
-},{"./emitter":274,"./rainbowBug":276,"./util":278,"lodash.throttle":174,"react":225}],273:[function(require,module,exports){
+},{"./emitter":275,"./rainbowBug":277,"./util":279,"lodash.throttle":174,"react":225}],274:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -68310,7 +68336,7 @@ class Earthbar extends React.Component {
 }
 exports.Earthbar = Earthbar;
 
-},{"./rainbowBug":276,"./util":278,"earthstar":102,"lodash.throttle":174,"react":225}],274:[function(require,module,exports){
+},{"./rainbowBug":277,"./util":279,"earthstar":102,"lodash.throttle":174,"react":225}],275:[function(require,module,exports){
 (function (process){
 "use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
@@ -68371,7 +68397,7 @@ exports.subscribeToMany = (emitters, cb) => {
 };
 
 }).call(this,require('_process'))
-},{"_process":208}],275:[function(require,module,exports){
+},{"_process":208}],276:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -68399,22 +68425,40 @@ const throttle = require("lodash.throttle");
 const deepEqual = require("fast-deep-equal");
 const emitter_1 = require("./emitter");
 const rainbowBug_1 = require("./rainbowBug");
+const base16_atelier_heath_light_1 = require("./base16/base16-atelier-heath-light");
 let logProfileApp = (...args) => console.log('ProfileApp |', ...args);
 //================================================================================
-let cEggplant = '#5e4d76';
-let cWhite = '#fff';
-let cBlack = '#222';
-let cFaintOpacity = 0.65;
-let cBarText = cBlack;
-let cBarBackground = cWhite;
-let cBarBorder = cEggplant;
-let cButtonBackground = cEggplant;
-let cButtonText = cWhite;
+let cRed = base16_atelier_heath_light_1.theme.base08;
+let cOrange = base16_atelier_heath_light_1.theme.base09;
+let cYellow = base16_atelier_heath_light_1.theme.base0A;
+let cGreen = base16_atelier_heath_light_1.theme.base0B;
+let cCyan = base16_atelier_heath_light_1.theme.base0C;
+let cBlue = base16_atelier_heath_light_1.theme.base0D;
+let cViolet = base16_atelier_heath_light_1.theme.base0E;
+let cMagenta = base16_atelier_heath_light_1.theme.base0F;
+let cCardBg = base16_atelier_heath_light_1.theme.base00;
+let cPageBg = base16_atelier_heath_light_1.theme.base02;
+let cText = base16_atelier_heath_light_1.theme.base07;
+let cButtonBg = cViolet;
+let cButtonText = base16_atelier_heath_light_1.theme.base00;
 let sPage = {
-    margin: 40,
+    padding: 20,
+    paddingTop: 40,
+    minHeight: '105vh',
+    backgroundColor: cPageBg,
+    color: cText,
+    fontFamily: 'Georgia, serif',
+    position: 'relative',
+};
+let sColumn = {
+    maxWidth: '40rem',
+    marginLeft: 'auto',
+    marginRight: 'auto',
+};
+let sCard = {
     padding: 20,
     borderRadius: 10,
-    backgroundColor: '#e4e4e4',
+    backgroundColor: cCardBg,
     position: 'relative',
 };
 let sButton = {
@@ -68422,7 +68466,7 @@ let sButton = {
     height: '2em',
     //marginLeft: 15,
     borderRadius: 10,
-    background: cButtonBackground,
+    background: cButtonBg,
     color: cButtonText,
     border: 'none',
     fontSize: 'inherit',
@@ -68499,8 +68543,10 @@ class ProfileApp extends React.Component {
         let router = this.props.router;
         if (router.workspace === null) {
             return React.createElement("div", { style: sPage },
-                React.createElement(rainbowBug_1.RainbowBug, { position: 'topRight' }),
-                "Choose a workspace");
+                React.createElement("div", { style: sColumn },
+                    React.createElement(rainbowBug_1.RainbowBug, { position: 'topLeft' }),
+                    React.createElement("h2", null, "Profile"),
+                    React.createElement("div", { style: sCard }, "(Choose a workspace)")));
         }
         let layerAbout = router.workspace.layerAbout;
         let subject = router.params.author;
@@ -68514,15 +68560,21 @@ class ProfileApp extends React.Component {
         }
         if (!subject) {
             return React.createElement("div", { style: sPage },
-                React.createElement(rainbowBug_1.RainbowBug, { position: 'topRight' }),
-                "Choose an author");
+                React.createElement("div", { style: sColumn },
+                    React.createElement(rainbowBug_1.RainbowBug, { position: 'topLeft' }),
+                    React.createElement("h2", null, "Profile"),
+                    React.createElement("div", { style: sCard }, "(Choose an author)")));
         }
         let infoOrNull = layerAbout.getAuthorInfo(subject);
         if (infoOrNull === null) {
             return React.createElement("div", { style: sPage },
-                React.createElement(rainbowBug_1.RainbowBug, { position: 'topRight' }),
-                "Unparsable author name: ",
-                React.createElement("code", null, JSON.stringify(subject)));
+                React.createElement("div", { style: sColumn },
+                    React.createElement(rainbowBug_1.RainbowBug, { position: 'topLeft' }),
+                    React.createElement("h2", null, "Profile"),
+                    React.createElement("div", { style: sCard },
+                        "(Unparsable author name: ",
+                        React.createElement("code", null, JSON.stringify(subject)),
+                        ")")));
         }
         let editMode = this.state.editMode;
         let info = infoOrNull;
@@ -68535,51 +68587,66 @@ class ProfileApp extends React.Component {
         //                        value={router.workspaceAddress || 'null'}
         //                        onChange={(e) => router.setWorkspace(e.target.value == 'null' ? null : e.target.value)}
         return React.createElement("div", { style: sPage },
-            React.createElement(rainbowBug_1.RainbowBug, { position: 'topRight' }),
-            allAuthorInfos.length === 0
-                ? null
-                : React.createElement("p", null,
-                    React.createElement("select", { value: subject, onChange: (e) => {
-                            logProfileApp('change author hash param to:', e.target.value);
-                            router.setParams(Object.assign(Object.assign({}, router.params), { author: e.target.value }));
-                        } }, allAuthorInfos.map(authorInfo => React.createElement("option", { key: authorInfo.address, value: authorInfo.address },
-                        "@",
-                        authorInfo.shortname,
-                        ".",
-                        authorInfo.pubkey.slice(0, 10),
-                        "...",
-                        authorInfo.profile.longname ? ' -- ' + authorInfo.profile.longname : null)))),
-            React.createElement("p", null,
-                React.createElement("span", { style: {
-                        display: 'inline-block',
-                        width: 100,
-                        height: 100,
-                        borderRadius: 100,
-                        backgroundColor: color,
-                    } })),
-            isMe ? React.createElement("p", null,
-                React.createElement("i", null, "This is you. "),
-                editMode
-                    ? React.createElement("button", { style: sButton, onClick: () => this._saveEdits(info.profile) }, "Save")
-                    : React.createElement("button", { style: sButton, onClick: () => this._startEditing(info.profile) }, "Edit")) : null,
-            React.createElement("p", null,
-                React.createElement("code", null,
-                    React.createElement("b", { style: { fontSize: '1.25em' } },
-                        "@",
-                        info.shortname),
-                    React.createElement("i", null,
-                        ".",
-                        info.pubkey))),
-            React.createElement("p", { style: { fontSize: '1.25em' } }, editMode
-                ? React.createElement("input", { type: "text", style: { width: '50%', padding: 5, fontWeight: 'bold' }, placeholder: "(none)", value: this.state.editedProfile.longname || '', onChange: (e) => this.setState({ editedProfile: Object.assign(Object.assign({}, this.state.editedProfile), { longname: e.target.value }) }) })
-                : React.createElement("b", null, info.profile.longname || '(no longname set)')),
-            React.createElement("hr", null),
-            React.createElement("pre", null, JSON.stringify(info, null, 4)));
+            React.createElement("div", { style: sColumn },
+                React.createElement(rainbowBug_1.RainbowBug, { position: 'topLeft' }),
+                React.createElement("h2", null, "Profile"),
+                allAuthorInfos.length === 0
+                    ? null
+                    : React.createElement("p", null,
+                        React.createElement("select", { value: info.address, onChange: (e) => {
+                                if (e.target.value === '') {
+                                    return;
+                                } // spacer
+                                logProfileApp('change author hash param to:', e.target.value);
+                                router.setParams(Object.assign(Object.assign({}, router.params), { author: e.target.value }));
+                            } },
+                            React.createElement("option", { key: "me", value: info.address },
+                                "@",
+                                info.shortname,
+                                ".",
+                                info.pubkey.slice(0, 10),
+                                "...",
+                                info.profile.longname ? ' -- ' + info.profile.longname : null),
+                            React.createElement("option", { key: "spacer", value: "" }, "---"),
+                            allAuthorInfos.map(authorInfo => React.createElement("option", { key: authorInfo.address, value: authorInfo.address },
+                                "@",
+                                authorInfo.shortname,
+                                ".",
+                                authorInfo.pubkey.slice(0, 10),
+                                "...",
+                                authorInfo.profile.longname ? ' -- ' + authorInfo.profile.longname : null)))),
+                React.createElement("div", { style: sCard },
+                    React.createElement("p", null,
+                        React.createElement("span", { style: {
+                                display: 'inline-block',
+                                width: 100,
+                                height: 100,
+                                borderRadius: 100,
+                                backgroundColor: color,
+                            } })),
+                    isMe ? React.createElement("p", null,
+                        React.createElement("i", null, "This is you. "),
+                        editMode
+                            ? React.createElement("button", { style: sButton, onClick: () => this._saveEdits(info.profile) }, "Save")
+                            : React.createElement("button", { style: sButton, onClick: () => this._startEditing(info.profile) }, "Edit")) : null,
+                    React.createElement("p", null,
+                        React.createElement("code", null,
+                            React.createElement("b", { style: { fontSize: '1.25em' } },
+                                "@",
+                                info.shortname),
+                            React.createElement("i", null,
+                                ".",
+                                info.pubkey))),
+                    React.createElement("p", { style: { fontSize: '1.25em' } }, editMode
+                        ? React.createElement("input", { type: "text", style: { width: '50%', padding: 5, fontWeight: 'bold' }, placeholder: "(none)", value: this.state.editedProfile.longname || '', onChange: (e) => this.setState({ editedProfile: Object.assign(Object.assign({}, this.state.editedProfile), { longname: e.target.value }) }) })
+                        : React.createElement("b", null, info.profile.longname || '(no longname set)')),
+                    React.createElement("hr", null),
+                    React.createElement("pre", null, JSON.stringify(info, null, 4)))));
     }
 }
 exports.ProfileApp = ProfileApp;
 
-},{"./emitter":274,"./rainbowBug":276,"fast-deep-equal":134,"lodash.throttle":174,"react":225}],276:[function(require,module,exports){
+},{"./base16/base16-atelier-heath-light":272,"./emitter":275,"./rainbowBug":277,"fast-deep-equal":134,"lodash.throttle":174,"react":225}],277:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -68648,7 +68715,7 @@ class RainbowBug extends React.Component {
 }
 exports.RainbowBug = RainbowBug;
 
-},{"./util":278,"react":225}],277:[function(require,module,exports){
+},{"./util":279,"react":225}],278:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EarthstarRouter = void 0;
@@ -68965,7 +69032,7 @@ class EarthstarRouter {
 }
 exports.EarthstarRouter = EarthstarRouter;
 
-},{"./emitter":274,"./workspace":279,"earthstar":102,"fast-deep-equal":134,"lodash.debounce":173}],278:[function(require,module,exports){
+},{"./emitter":275,"./workspace":280,"earthstar":102,"fast-deep-equal":134,"lodash.debounce":173}],279:[function(require,module,exports){
 "use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -69002,7 +69069,7 @@ exports.randomColor = () => {
     return `rgb(${r},${g},${b})`;
 };
 
-},{}],279:[function(require,module,exports){
+},{}],280:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Workspace = void 0;
