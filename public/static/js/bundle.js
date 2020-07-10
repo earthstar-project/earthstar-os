@@ -68423,6 +68423,7 @@ exports.ProfileApp = void 0;
 const React = __importStar(require("react"));
 const throttle = require("lodash.throttle");
 const deepEqual = require("fast-deep-equal");
+const util_1 = require("./util");
 const emitter_1 = require("./emitter");
 const rainbowBug_1 = require("./rainbowBug");
 const base16_atelier_heath_light_1 = require("./base16/base16-atelier-heath-light");
@@ -68476,7 +68477,7 @@ class ProfileApp extends React.Component {
         super(props);
         this.unsub = null;
         this.state = {
-            editMode: false,
+            isEditing: false,
             editedProfile: {},
         };
     }
@@ -68500,7 +68501,7 @@ class ProfileApp extends React.Component {
     }
     _startEditing(profile) {
         this.setState({
-            editMode: true,
+            isEditing: true,
             editedProfile: Object.assign({}, profile),
         });
     }
@@ -68534,13 +68535,14 @@ class ProfileApp extends React.Component {
     }
     _clearEdits() {
         this.setState({
-            editMode: false,
+            isEditing: false,
             editedProfile: {},
         });
     }
     render() {
         logProfileApp('render');
         let router = this.props.router;
+        // not in a workspace?  show an error
         if (router.workspace === null) {
             return React.createElement("div", { style: sPage },
                 React.createElement("div", { style: sColumn },
@@ -68549,24 +68551,27 @@ class ProfileApp extends React.Component {
                     React.createElement("div", { style: sCard }, "(Choose a workspace)")));
         }
         let layerAbout = router.workspace.layerAbout;
+        // the subject is the author to display the profile for.
+        // get it from the router params...
         let subject = router.params.author;
-        let isMe = false;
-        if (router.authorKeypair !== null) {
-            let myAddress = router.authorKeypair.address;
-            if (!subject || subject === "me") {
-                subject = myAddress;
+        if (!subject || subject === 'me') {
+            // if router params are missing or "me", use the current logged-in user as the subject
+            if (router.authorKeypair !== null) {
+                subject = router.authorKeypair.address;
             }
-            isMe = subject === myAddress;
         }
-        if (!subject) {
+        // we couldn't figure out who the subject is?  show an error
+        if (!subject || subject === 'me') {
             return React.createElement("div", { style: sPage },
                 React.createElement("div", { style: sColumn },
                     React.createElement(rainbowBug_1.RainbowBug, { position: 'topLeft' }),
                     React.createElement("h2", null, "Profile"),
                     React.createElement("div", { style: sCard }, "(Choose an author)")));
         }
-        let infoOrNull = layerAbout.getAuthorInfo(subject);
-        if (infoOrNull === null) {
+        // look up info for the subject
+        let subjectInfoOrNull = layerAbout.getAuthorInfo(subject);
+        if (subjectInfoOrNull === null) {
+            // malformed subject author address, show an error
             return React.createElement("div", { style: sPage },
                 React.createElement("div", { style: sColumn },
                     React.createElement(rainbowBug_1.RainbowBug, { position: 'topLeft' }),
@@ -68576,16 +68581,37 @@ class ProfileApp extends React.Component {
                         React.createElement("code", null, JSON.stringify(subject)),
                         ")")));
         }
-        let editMode = this.state.editMode;
-        let info = infoOrNull;
-        let hue = typeof info.profile.hue === 'number' ? info.profile.hue : null;
-        let color = (hue === null) ? '#aaa' : `hsl(${hue}, 50%, 50%)`;
-        // TODO: make sure subject is in this list
+        let subjectInfo = subjectInfoOrNull;
+        // get the logged-in user's info
+        let myInfoOrNull = null;
+        let isMe = false;
+        if (router.authorKeypair !== null) {
+            myInfoOrNull = layerAbout.getAuthorInfo(router.authorKeypair.address);
+            isMe = subject === router.authorKeypair.address;
+        }
+        let subjectHue = typeof subjectInfo.profile.hue === 'number' ? subjectInfo.profile.hue : null;
+        let subjectColor = (subjectHue === null) ? '#aaa' : `hsl(${subjectHue}, 50%, 50%)`;
+        let isEditing = this.state.isEditing;
+        // make list of authors, for dropdown
+        // authors come from 3 sources:
+        //   authors who have written into this workspace
+        //   the subject (from the hash params), may or may not have written in the workspace
+        //   the logged-in author, may or may not have written in the workspace
+        let addAuthorToList = (arr, authorInfo) => {
+            if (authorInfo === null) {
+                return;
+            }
+            for (let a of arr) {
+                if (a.address === authorInfo.address) {
+                    return;
+                }
+            }
+            arr.push(authorInfo);
+        };
         let allAuthorInfos = layerAbout.listAuthorInfos();
-        logProfileApp(allAuthorInfos);
-        //                    <select name="ws" style={sSelect}
-        //                        value={router.workspaceAddress || 'null'}
-        //                        onChange={(e) => router.setWorkspace(e.target.value == 'null' ? null : e.target.value)}
+        addAuthorToList(allAuthorInfos, myInfoOrNull);
+        addAuthorToList(allAuthorInfos, subjectInfo);
+        util_1.sortByKey(allAuthorInfos, info => info.address);
         return React.createElement("div", { style: sPage },
             React.createElement("div", { style: sColumn },
                 React.createElement(rainbowBug_1.RainbowBug, { position: 'topLeft' }),
@@ -68593,28 +68619,19 @@ class ProfileApp extends React.Component {
                 allAuthorInfos.length === 0
                     ? null
                     : React.createElement("p", null,
-                        React.createElement("select", { value: info.address, onChange: (e) => {
+                        React.createElement("select", { value: subjectInfo.address, onChange: (e) => {
                                 if (e.target.value === '') {
                                     return;
                                 } // spacer
                                 logProfileApp('change author hash param to:', e.target.value);
                                 router.setParams(Object.assign(Object.assign({}, router.params), { author: e.target.value }));
-                            } },
-                            React.createElement("option", { key: "me", value: info.address },
-                                "@",
-                                info.shortname,
-                                ".",
-                                info.pubkey.slice(0, 10),
-                                "...",
-                                info.profile.longname ? ' -- ' + info.profile.longname : null),
-                            React.createElement("option", { key: "spacer", value: "" }, "---"),
-                            allAuthorInfos.map(authorInfo => React.createElement("option", { key: authorInfo.address, value: authorInfo.address },
-                                "@",
-                                authorInfo.shortname,
-                                ".",
-                                authorInfo.pubkey.slice(0, 10),
-                                "...",
-                                authorInfo.profile.longname ? ' -- ' + authorInfo.profile.longname : null)))),
+                            } }, allAuthorInfos.map(authorInfo => React.createElement("option", { key: authorInfo.address, value: authorInfo.address },
+                            "@",
+                            authorInfo.shortname,
+                            ".",
+                            authorInfo.pubkey.slice(0, 10),
+                            "...",
+                            authorInfo.profile.longname ? ' -- ' + authorInfo.profile.longname : null)))),
                 React.createElement("div", { style: sCard },
                     React.createElement("p", null,
                         React.createElement("span", { style: {
@@ -68622,31 +68639,31 @@ class ProfileApp extends React.Component {
                                 width: 100,
                                 height: 100,
                                 borderRadius: 100,
-                                backgroundColor: color,
+                                backgroundColor: subjectColor,
                             } })),
                     isMe ? React.createElement("p", null,
                         React.createElement("i", null, "This is you. "),
-                        editMode
-                            ? React.createElement("button", { style: sButton, onClick: () => this._saveEdits(info.profile) }, "Save")
-                            : React.createElement("button", { style: sButton, onClick: () => this._startEditing(info.profile) }, "Edit")) : null,
+                        isEditing
+                            ? React.createElement("button", { style: sButton, onClick: () => this._saveEdits(subjectInfo.profile) }, "Save")
+                            : React.createElement("button", { style: sButton, onClick: () => this._startEditing(subjectInfo.profile) }, "Edit")) : null,
                     React.createElement("p", null,
                         React.createElement("code", null,
                             React.createElement("b", { style: { fontSize: '1.25em' } },
                                 "@",
-                                info.shortname),
+                                subjectInfo.shortname),
                             React.createElement("i", null,
                                 ".",
-                                info.pubkey))),
-                    React.createElement("p", { style: { fontSize: '1.25em' } }, editMode
+                                subjectInfo.pubkey))),
+                    React.createElement("p", { style: { fontSize: '1.25em' } }, isEditing
                         ? React.createElement("input", { type: "text", style: { width: '50%', padding: 5, fontWeight: 'bold' }, placeholder: "(none)", value: this.state.editedProfile.longname || '', onChange: (e) => this.setState({ editedProfile: Object.assign(Object.assign({}, this.state.editedProfile), { longname: e.target.value }) }) })
-                        : React.createElement("b", null, info.profile.longname || '(no longname set)')),
+                        : React.createElement("b", null, subjectInfo.profile.longname || '(no longname set)')),
                     React.createElement("hr", null),
-                    React.createElement("pre", null, JSON.stringify(info, null, 4)))));
+                    React.createElement("pre", null, JSON.stringify(subjectInfo, null, 4)))));
     }
 }
 exports.ProfileApp = ProfileApp;
 
-},{"./base16/base16-atelier-heath-light":272,"./emitter":275,"./rainbowBug":277,"fast-deep-equal":134,"lodash.throttle":174,"react":225}],277:[function(require,module,exports){
+},{"./base16/base16-atelier-heath-light":272,"./emitter":275,"./rainbowBug":277,"./util":279,"fast-deep-equal":134,"lodash.throttle":174,"react":225}],277:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -69044,7 +69061,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.randomColor = exports.randint = exports.sorted = exports.notNull = exports.sleep = void 0;
+exports.randomColor = exports.randint = exports.sortByKey = exports.sortedByKey = exports.sorted = exports.notNull = exports.sleep = void 0;
 exports.sleep = (ms) => __awaiter(void 0, void 0, void 0, function* () {
     return new Promise((resolve, reject) => {
         setTimeout(resolve, ms);
@@ -69058,6 +69075,25 @@ exports.notNull = (items) => items.filter(t => t !== null);
 exports.sorted = (items) => {
     items.sort();
     return items;
+};
+// mutate the array and return it
+exports.sortedByKey = (items, keyFn) => {
+    items.sort((a, b) => {
+        let keyA = keyFn(a);
+        let keyB = keyFn(b);
+        if (keyA < keyB) {
+            return -1;
+        }
+        if (keyA > keyB) {
+            return 1;
+        }
+        return 0;
+    });
+    return items;
+};
+// mutate the array and return nothing
+exports.sortByKey = (items, keyFn) => {
+    exports.sortedByKey(items, keyFn);
 };
 exports.randint = (min, max) => 
 // inclusive

@@ -3,13 +3,15 @@ import {
     Document,
     Pub,
     AuthorProfile,
+    AuthorInfo,
+    AuthorAddress,
 } from 'earthstar'
 import throttle = require('lodash.throttle');
 import deepEqual = require('fast-deep-equal');
 
 import { Thunk } from './types';
 import {
-    randomColor,
+    randomColor, sortByKey, sortedByKey,
 } from './util';
 import { EarthstarRouter } from './router';
 import { AppProps } from './appSwitcher';
@@ -69,7 +71,7 @@ let sButton : React.CSSProperties = {
 }
 
 interface ProfileAppState {
-    editMode : boolean;
+    isEditing : boolean;
     editedProfile : AuthorProfile;
 }
 export class ProfileApp extends React.Component<AppProps, ProfileAppState> {
@@ -77,7 +79,7 @@ export class ProfileApp extends React.Component<AppProps, ProfileAppState> {
     constructor(props : AppProps) {
         super(props);
         this.state = {
-            editMode: false,
+            isEditing: false,
             editedProfile: {},
         }
     }
@@ -102,7 +104,7 @@ export class ProfileApp extends React.Component<AppProps, ProfileAppState> {
     }
     _startEditing(profile : AuthorProfile) {
         this.setState({
-            editMode: true,
+            isEditing: true,
             editedProfile: {...profile},
         });
     }
@@ -130,13 +132,15 @@ export class ProfileApp extends React.Component<AppProps, ProfileAppState> {
     }
     _clearEdits() {
         this.setState({
-            editMode: false,
+            isEditing: false,
             editedProfile: {},
         });
     }
     render() {
         logProfileApp('render');
         let router = this.props.router;
+
+        // not in a workspace?  show an error
         if (router.workspace === null) {
             return <div style={sPage}><div style={sColumn}>
                 <RainbowBug position='topLeft' />
@@ -148,17 +152,18 @@ export class ProfileApp extends React.Component<AppProps, ProfileAppState> {
         }
         let layerAbout = router.workspace.layerAbout;
 
+        // the subject is the author to display the profile for.
+        // get it from the router params...
         let subject = router.params.author;
-        let isMe = false;
-        if (router.authorKeypair !== null) {
-            let myAddress = router.authorKeypair.address;
-            if (!subject || subject === "me") {
-                subject = myAddress;
+        if (!subject || subject === 'me') {
+            // if router params are missing or "me", use the current logged-in user as the subject
+            if (router.authorKeypair !== null) {
+                subject = router.authorKeypair.address;
             }
-            isMe = subject === myAddress;
         }
 
-        if (!subject) {
+        // we couldn't figure out who the subject is?  show an error
+        if (!subject || subject === 'me') {
             return <div style={sPage}><div style={sColumn}>
                 <RainbowBug position='topLeft' />
                 <h2>Profile</h2>
@@ -168,8 +173,10 @@ export class ProfileApp extends React.Component<AppProps, ProfileAppState> {
             </div></div>;
         }
 
-        let infoOrNull = layerAbout.getAuthorInfo(subject);
-        if (infoOrNull === null) {
+        // look up info for the subject
+        let subjectInfoOrNull = layerAbout.getAuthorInfo(subject);
+        if (subjectInfoOrNull === null) {
+            // malformed subject author address, show an error
             return <div style={sPage}><div style={sColumn}>
                 <RainbowBug position='topLeft' />
                 <h2>Profile</h2>
@@ -178,18 +185,37 @@ export class ProfileApp extends React.Component<AppProps, ProfileAppState> {
                 </div>
             </div></div>;
         }
-        let editMode = this.state.editMode;
-        let info = infoOrNull;
-        let hue = typeof info.profile.hue === 'number' ? info.profile.hue : null;
-        let color = (hue === null) ? '#aaa' : `hsl(${hue}, 50%, 50%)`;
+        let subjectInfo = subjectInfoOrNull;
 
-        // TODO: make sure subject is in this list
+        // get the logged-in user's info
+        let myInfoOrNull : AuthorInfo | null = null;
+        let isMe = false;
+        if (router.authorKeypair !== null) {
+            myInfoOrNull = layerAbout.getAuthorInfo(router.authorKeypair.address);
+            isMe = subject === router.authorKeypair.address;
+        }
+
+        let subjectHue = typeof subjectInfo.profile.hue === 'number' ? subjectInfo.profile.hue : null;
+        let subjectColor = (subjectHue === null) ? '#aaa' : `hsl(${subjectHue}, 50%, 50%)`;
+
+        let isEditing = this.state.isEditing;
+
+        // make list of authors, for dropdown
+        // authors come from 3 sources:
+        //   authors who have written into this workspace
+        //   the subject (from the hash params), may or may not have written in the workspace
+        //   the logged-in author, may or may not have written in the workspace
+        let addAuthorToList = (arr : AuthorInfo[], authorInfo : AuthorInfo | null) : void => {
+            if (authorInfo === null) { return; }
+            for (let a of arr) {
+                if (a.address === authorInfo.address) { return; }
+            }
+            arr.push(authorInfo);
+        }
         let allAuthorInfos = layerAbout.listAuthorInfos();
-        logProfileApp(allAuthorInfos);
-
-//                    <select name="ws" style={sSelect}
-//                        value={router.workspaceAddress || 'null'}
-//                        onChange={(e) => router.setWorkspace(e.target.value == 'null' ? null : e.target.value)}
+        addAuthorToList(allAuthorInfos, myInfoOrNull);
+        addAuthorToList(allAuthorInfos, subjectInfo);
+        sortByKey(allAuthorInfos, info => info.address);
 
         return <div style={sPage}><div style={sColumn}>
             <RainbowBug position='topLeft' />
@@ -198,17 +224,13 @@ export class ProfileApp extends React.Component<AppProps, ProfileAppState> {
                 {allAuthorInfos.length === 0
                 ? null
                 : <p>
-                        <select value={info.address}
+                        <select value={subjectInfo.address}
                             onChange={(e) => {
                                 if (e.target.value === '') { return; }  // spacer
                                 logProfileApp('change author hash param to:', e.target.value);
                                 router.setParams({...router.params, author: e.target.value});
                             }}
                             >
-                            <option key="me" value={info.address}>
-                                @{info.shortname}.{info.pubkey.slice(0, 10)}...{info.profile.longname ? ' -- ' + info.profile.longname : null}
-                            </option>
-                            <option key="spacer" value="">---</option>
                             {allAuthorInfos.map(authorInfo =>
                                 <option key={authorInfo.address} value={authorInfo.address}>
                                     @{authorInfo.shortname}.{authorInfo.pubkey.slice(0, 10)}...{authorInfo.profile.longname ? ' -- ' + authorInfo.profile.longname : null}
@@ -226,39 +248,39 @@ export class ProfileApp extends React.Component<AppProps, ProfileAppState> {
                         width: 100,
                         height: 100,
                         borderRadius: 100,
-                        backgroundColor: color,
+                        backgroundColor: subjectColor,
                     }}/>
                 </p>
 
                 {/* edit buttons */}
                 {isMe ? <p>
                     <i>This is you. </i>
-                    {editMode
-                    ? <button style={sButton} onClick={() => this._saveEdits(info.profile)}>
+                    {isEditing
+                    ? <button style={sButton} onClick={() => this._saveEdits(subjectInfo.profile)}>
                         Save
                     </button>
-                    : <button style={sButton} onClick={() => this._startEditing(info.profile)}>
+                    : <button style={sButton} onClick={() => this._startEditing(subjectInfo.profile)}>
                         Edit
                     </button>
                     }
                 </p> : null}
 
                 {/* shortname and longname */}
-                <p><code><b style={{fontSize: '1.25em'}}>@{info.shortname}</b><i>.{info.pubkey}</i></code></p>
+                <p><code><b style={{fontSize: '1.25em'}}>@{subjectInfo.shortname}</b><i>.{subjectInfo.pubkey}</i></code></p>
                 <p style={{fontSize: '1.25em'}}>{
-                    editMode
+                    isEditing
                     ? <input type="text"
                             style={{width: '50%', padding: 5, fontWeight: 'bold'}}
                             placeholder="(none)"
                             value={this.state.editedProfile.longname || ''}
                             onChange={(e: any) => this.setState({editedProfile: {...this.state.editedProfile, longname: e.target.value}})}
                             />
-                    : <b>{info.profile.longname || '(no longname set)'}</b>
+                    : <b>{subjectInfo.profile.longname || '(no longname set)'}</b>
                     }
                 </p>
                 {/* json view */}
                 <hr />
-                <pre>{JSON.stringify(info, null, 4)}</pre>
+                <pre>{JSON.stringify(subjectInfo, null, 4)}</pre>
             </div>
         </div></div>;
     }

@@ -16,6 +16,22 @@ export let sorted = <T>(items : T[]) : T[] => {
     return items;
 }
 
+// mutate the array and return it
+export let sortedByKey = <T>(items : T[], keyFn : (a : T) => any) : T[] => {
+    items.sort((a : T, b : T) : number => {
+        let keyA = keyFn(a);
+        let keyB = keyFn(b);
+        if (keyA < keyB) { return -1; }
+        if (keyA > keyB) { return 1; }
+        return 0;
+    });
+    return items;
+}
+// mutate the array and return nothing
+export let sortByKey = <T>(items : T[], keyFn : (a : T) => any) : void => {
+    sortedByKey(items, keyFn);
+}
+
 export let randint = (min : number, max : number) : number =>
     // inclusive
     Math.floor(Math.random() * ((max+1) - min)) + min;
