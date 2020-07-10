@@ -68805,9 +68805,9 @@ let setHashParams = (params) => {
     let newHash = Object.entries(params)
         .map(([k, v]) => `${k}=${v}`)
         .join('&');
-    log('setHashParams |');
-    log(params);
-    log(newHash);
+    log('setHashParams | start');
+    log('setHashParams | ...params', params);
+    log('setHashParams | ...newHash', newHash);
     window.location.hash = newHash;
 };
 //================================================================================
@@ -68996,6 +68996,7 @@ class EarthstarRouter {
         log('Router._saveHistory() | done');
     }
     setWorkspace(workspaceAddress) {
+        // changing the workspace will clear all params besides the special ones (app and workspace)
         log('Router.setWorkspace(' + workspaceAddress + ') | start');
         this.workspaceAddress = workspaceAddress;
         // update history to move workspace to the beginning of the list (most recent)
@@ -69007,15 +69008,15 @@ class EarthstarRouter {
         log('Router.setWorkspace() | ...build new workspace');
         this._buildWorkspace();
         // update hash params.
-        if (workspaceAddress === null) {
-            log('Router.setWorkspace() | ...remove workspace from hash params');
-            delete this.params.workspace;
+        log('Router.setWorkspace() | ...clear hash params except for app and workspace');
+        let newParams = {};
+        if (this.workspaceAddress !== null) {
+            newParams.workspace = this.workspaceAddress.slice(1);
+        } // remove '+'
+        if (this.app !== null) {
+            newParams.app = this.app;
         }
-        else {
-            log('Router.setWorkspace() | ...set workspace from hash params');
-            this.params.workspace = workspaceAddress.slice(1); // remove '+'
-        }
-        setHashParams(this.params);
+        setHashParams(newParams);
         log('Router.setWorkspace() | ...send onWorkspaceChange');
         this.onWorkspaceChange.send(undefined);
         log('Router.setWorkspace() | ...done');
@@ -69053,19 +69054,21 @@ class EarthstarRouter {
         log('Router.setAuthorKeypair() | ...done');
     }
     setApp(app) {
+        // changing the app will clear all params besides the special ones (app and workspace)
         log('Router.setApp(' + app + ') | start');
         if (app === this.app) {
             log('Router.setApp() | ...nothing to change.  done.');
             return;
         }
         this.app = app;
-        log('Router.setApp() | ...updating hash params');
-        let newParams = Object.assign({}, this.params);
-        if (app === null) {
-            delete newParams.app;
-        }
-        else {
-            newParams.app = app;
+        // update hash params.
+        log('Router.setApp() | ...clear hash params except for app and workspace');
+        let newParams = {};
+        if (this.workspaceAddress !== null) {
+            newParams.workspace = this.workspaceAddress.slice(1);
+        } // remove '+'
+        if (this.app !== null) {
+            newParams.app = this.app;
         }
         // this will send onAppChange event for us
         setHashParams(newParams);
