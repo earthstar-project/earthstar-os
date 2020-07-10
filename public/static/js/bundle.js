@@ -68472,6 +68472,9 @@ let sButton = {
     border: 'none',
     fontSize: 'inherit',
 };
+let sSelect = {
+    color: 'black',
+};
 class ProfileApp extends React.Component {
     constructor(props) {
         super(props);
@@ -68619,7 +68622,7 @@ class ProfileApp extends React.Component {
                 allAuthorInfos.length === 0
                     ? null
                     : React.createElement("p", null,
-                        React.createElement("select", { value: subjectInfo.address, onChange: (e) => {
+                        React.createElement("select", { value: subjectInfo.address, style: sSelect, onChange: (e) => {
                                 if (e.target.value === '') {
                                     return;
                                 } // spacer
@@ -68656,9 +68659,8 @@ class ProfileApp extends React.Component {
                                 subjectInfo.pubkey))),
                     React.createElement("p", { style: { fontSize: '1.25em' } }, isEditing
                         ? React.createElement("input", { type: "text", style: { width: '50%', padding: 5, fontWeight: 'bold' }, placeholder: "(none)", value: this.state.editedProfile.longname || '', onChange: (e) => this.setState({ editedProfile: Object.assign(Object.assign({}, this.state.editedProfile), { longname: e.target.value }) }) })
-                        : React.createElement("b", null, subjectInfo.profile.longname || '(no longname set)')),
-                    React.createElement("hr", null),
-                    React.createElement("pre", null, JSON.stringify(subjectInfo, null, 4)))));
+                        : React.createElement("b", null, subjectInfo.profile.longname || '(no longname set)'))),
+                React.createElement("pre", { style: { overflow: 'visible' } }, JSON.stringify(subjectInfo, null, 4))));
     }
 }
 exports.ProfileApp = ProfileApp;

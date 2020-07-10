@@ -1,21 +1,15 @@
 import * as React from 'react';
 import {
-    Document,
-    Pub,
     AuthorProfile,
     AuthorInfo,
-    AuthorAddress,
 } from 'earthstar'
 import throttle = require('lodash.throttle');
 import deepEqual = require('fast-deep-equal');
 
 import { Thunk } from './types';
-import {
-    randomColor, sortByKey, sortedByKey,
-} from './util';
-import { EarthstarRouter } from './router';
+import { sortByKey } from './util';
+import { subscribeToMany } from './emitter';
 import { AppProps } from './appSwitcher';
-import { Emitter, subscribeToMany } from './emitter';
 import { RainbowBug } from './rainbowBug';
 
 import { theme } from './base16/base16-atelier-heath-light';
@@ -68,6 +62,9 @@ let sButton : React.CSSProperties = {
     color: cButtonText,
     border: 'none',
     fontSize: 'inherit',
+}
+let sSelect : React.CSSProperties = {
+    color: 'black',
 }
 
 interface ProfileAppState {
@@ -225,6 +222,7 @@ export class ProfileApp extends React.Component<AppProps, ProfileAppState> {
                 ? null
                 : <p>
                         <select value={subjectInfo.address}
+                            style={sSelect}
                             onChange={(e) => {
                                 if (e.target.value === '') { return; }  // spacer
                                 logProfileApp('change author hash param to:', e.target.value);
@@ -278,10 +276,9 @@ export class ProfileApp extends React.Component<AppProps, ProfileAppState> {
                     : <b>{subjectInfo.profile.longname || '(no longname set)'}</b>
                     }
                 </p>
-                {/* json view */}
-                <hr />
-                <pre>{JSON.stringify(subjectInfo, null, 4)}</pre>
             </div>
+            {/* json view */}
+            <pre style={{overflow: 'visible'}}>{JSON.stringify(subjectInfo, null, 4)}</pre>
         </div></div>;
     }
 }
