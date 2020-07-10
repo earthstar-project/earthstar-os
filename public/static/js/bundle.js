@@ -68442,6 +68442,12 @@ let cPageBg = base16_atelier_heath_light_1.theme.base02;
 let cText = base16_atelier_heath_light_1.theme.base07;
 let cButtonBg = cViolet;
 let cButtonText = base16_atelier_heath_light_1.theme.base00;
+let sFaint = {
+    opacity: 0.6,
+};
+let sLargeText = {
+    fontSize: '1.25em',
+};
 let sPage = {
     padding: 20,
     paddingTop: 40,
@@ -68452,7 +68458,7 @@ let sPage = {
     position: 'relative',
 };
 let sColumn = {
-    maxWidth: '40rem',
+    maxWidth: '43rem',
     marginLeft: 'auto',
     marginRight: 'auto',
 };
@@ -68461,6 +68467,16 @@ let sCard = {
     borderRadius: 10,
     backgroundColor: cCardBg,
     position: 'relative',
+};
+let sCardFlexbox = Object.assign(Object.assign({}, sCard), { display: 'flex' });
+let sCardLeft = {
+    flexShrink: 0,
+    flexGrow: 0,
+    paddingRight: 15,
+};
+let sCardRight = {
+    flexShrink: 1,
+    flexGrow: 1,
 };
 let sButton = {
     //padding: 10,
@@ -68592,9 +68608,11 @@ class ProfileApp extends React.Component {
             myInfoOrNull = layerAbout.getAuthorInfo(router.authorKeypair.address);
             isMe = subject === router.authorKeypair.address;
         }
-        let subjectHue = typeof subjectInfo.profile.hue === 'number' ? subjectInfo.profile.hue : null;
-        let subjectColor = (subjectHue === null) ? '#aaa' : `hsl(${subjectHue}, 50%, 50%)`;
         let isEditing = this.state.isEditing;
+        let subjectHueRaw = isEditing ? this.state.editedProfile.hue : subjectInfo.profile.hue;
+        let subjectHue = typeof subjectHueRaw === 'number' ? subjectHueRaw : null;
+        let subjectColor = (subjectHue === null) ? '#aaa' : `hsl(${subjectHue}, 50%, 50%)`;
+        logProfileApp('HUE', subjectHueRaw, subjectHue, subjectColor);
         // make list of authors, for dropdown
         // authors come from 3 sources:
         //   authors who have written into this workspace
@@ -68632,35 +68650,48 @@ class ProfileApp extends React.Component {
                             "@",
                             authorInfo.shortname,
                             ".",
-                            authorInfo.pubkey.slice(0, 10),
-                            "...",
-                            authorInfo.profile.longname ? ' -- ' + authorInfo.profile.longname : null)))),
-                React.createElement("div", { style: sCard },
-                    React.createElement("p", null,
-                        React.createElement("span", { style: {
-                                display: 'inline-block',
-                                width: 100,
-                                height: 100,
-                                borderRadius: 100,
-                                backgroundColor: subjectColor,
-                            } })),
-                    isMe ? React.createElement("p", null,
-                        React.createElement("i", null, "This is you. "),
+                            util_1.ellipsify(authorInfo.pubkey, 9),
+                            authorInfo.profile.longname ? ' -- ' + util_1.ellipsify(authorInfo.profile.longname, 40) : null)))),
+                React.createElement("div", { style: sCardFlexbox },
+                    React.createElement("div", { style: sCardLeft },
+                        React.createElement("p", null,
+                            React.createElement("span", { style: {
+                                    display: 'inline-block',
+                                    width: 100,
+                                    height: 100,
+                                    borderRadius: 100,
+                                    backgroundColor: subjectColor,
+                                } }))),
+                    React.createElement("div", { style: sCardRight },
+                        React.createElement("p", null,
+                            React.createElement("code", null,
+                                React.createElement("b", { style: sLargeText },
+                                    "@",
+                                    subjectInfo.shortname),
+                                React.createElement("i", { style: sFaint },
+                                    ".",
+                                    subjectInfo.pubkey))),
+                        React.createElement("p", { style: sLargeText }, isEditing
+                            ? React.createElement("input", { type: "text", style: { width: '85%', padding: 5, fontWeight: 'bold' }, placeholder: "(no longname)", value: this.state.editedProfile.longname || '', onChange: (e) => this.setState({ editedProfile: Object.assign(Object.assign({}, this.state.editedProfile), { longname: e.target.value }) }) })
+                            : subjectInfo.profile.longname
+                                ? React.createElement("b", null, subjectInfo.profile.longname)
+                                : React.createElement("i", { style: sFaint }, "(no longname)")),
+                        isMe ? React.createElement("p", null,
+                            React.createElement("i", null, "This is you. "),
+                            isEditing
+                                ? React.createElement("button", { style: sButton, onClick: () => this._saveEdits(subjectInfo.profile) }, "Save")
+                                : React.createElement("button", { style: sButton, onClick: () => this._startEditing(subjectInfo.profile) }, "Edit")) : null,
                         isEditing
-                            ? React.createElement("button", { style: sButton, onClick: () => this._saveEdits(subjectInfo.profile) }, "Save")
-                            : React.createElement("button", { style: sButton, onClick: () => this._startEditing(subjectInfo.profile) }, "Edit")) : null,
-                    React.createElement("p", null,
-                        React.createElement("code", null,
-                            React.createElement("b", { style: { fontSize: '1.25em' } },
-                                "@",
-                                subjectInfo.shortname),
-                            React.createElement("i", null,
-                                ".",
-                                subjectInfo.pubkey))),
-                    React.createElement("p", { style: { fontSize: '1.25em' } }, isEditing
-                        ? React.createElement("input", { type: "text", style: { width: '50%', padding: 5, fontWeight: 'bold' }, placeholder: "(none)", value: this.state.editedProfile.longname || '', onChange: (e) => this.setState({ editedProfile: Object.assign(Object.assign({}, this.state.editedProfile), { longname: e.target.value }) }) })
-                        : React.createElement("b", null, subjectInfo.profile.longname || '(no longname set)'))),
-                React.createElement("pre", { style: { overflow: 'visible' } }, JSON.stringify(subjectInfo, null, 4))));
+                            ? React.createElement("p", null,
+                                "Color:",
+                                React.createElement("input", { type: "range", min: "0", max: "359", step: "1", value: subjectHue === null ? 90 : subjectHue, onChange: (e) => {
+                                        let hue = util_1.parseNum(e.target.value);
+                                        if (hue !== null) {
+                                            this.setState({ editedProfile: Object.assign(Object.assign({}, this.state.editedProfile), { hue: hue }) });
+                                        }
+                                    } }))
+                            : null)),
+                React.createElement("pre", { style: Object.assign(Object.assign({}, sFaint), { overflow: 'visible' }) }, JSON.stringify(subjectInfo, null, 4))));
     }
 }
 exports.ProfileApp = ProfileApp;
@@ -69063,7 +69094,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.randomColor = exports.randint = exports.sortByKey = exports.sortedByKey = exports.sorted = exports.notNull = exports.sleep = void 0;
+exports.randomColor = exports.randint = exports.ellipsify = exports.parseNum = exports.sortByKey = exports.sortedByKey = exports.sorted = exports.notNull = exports.sleep = void 0;
 exports.sleep = (ms) => __awaiter(void 0, void 0, void 0, function* () {
     return new Promise((resolve, reject) => {
         setTimeout(resolve, ms);
@@ -69096,6 +69127,20 @@ exports.sortedByKey = (items, keyFn) => {
 // mutate the array and return nothing
 exports.sortByKey = (items, keyFn) => {
     exports.sortedByKey(items, keyFn);
+};
+exports.parseNum = (s) => {
+    let n = parseInt(s, 10);
+    if (isNaN(n)) {
+        return null;
+    }
+    return n;
+};
+exports.ellipsify = (s, len) => {
+    if (s.length <= len) {
+        return s;
+    }
+    ;
+    return s.slice(0, Math.max(1, len - 3)) + '...';
 };
 exports.randint = (min, max) => 
 // inclusive

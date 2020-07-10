@@ -7,7 +7,7 @@ import throttle = require('lodash.throttle');
 import deepEqual = require('fast-deep-equal');
 
 import { Thunk } from './types';
-import { sortByKey } from './util';
+import { sortByKey, parseNum, ellipsify } from './util';
 import { subscribeToMany } from './emitter';
 import { AppProps } from './appSwitcher';
 import { RainbowBug } from './rainbowBug';
@@ -33,6 +33,12 @@ let cText = theme.base07;
 let cButtonBg = cViolet;
 let cButtonText = theme.base00;
 
+let sFaint : React.CSSProperties = {
+    opacity: 0.6,
+}
+let sLargeText : React.CSSProperties = {
+    fontSize: '1.25em',
+}
 let sPage : React.CSSProperties = {
     padding: 20,
     paddingTop: 40,
@@ -43,7 +49,7 @@ let sPage : React.CSSProperties = {
     position: 'relative',
 }
 let sColumn : React.CSSProperties = {
-    maxWidth: '40rem',
+    maxWidth: '43rem',
     marginLeft: 'auto',
     marginRight: 'auto',
 }
@@ -52,6 +58,19 @@ let sCard : React.CSSProperties = {
     borderRadius: 10,
     backgroundColor: cCardBg,
     position: 'relative',
+}
+let sCardFlexbox : React.CSSProperties = {
+    ...sCard,
+    display: 'flex',
+}
+let sCardLeft : React.CSSProperties = {
+    flexShrink: 0,
+    flexGrow: 0,
+    paddingRight: 15,
+}
+let sCardRight : React.CSSProperties = {
+    flexShrink: 1,
+    flexGrow: 1,
 }
 let sButton : React.CSSProperties = {
     //padding: 10,
@@ -192,10 +211,12 @@ export class ProfileApp extends React.Component<AppProps, ProfileAppState> {
             isMe = subject === router.authorKeypair.address;
         }
 
-        let subjectHue = typeof subjectInfo.profile.hue === 'number' ? subjectInfo.profile.hue : null;
-        let subjectColor = (subjectHue === null) ? '#aaa' : `hsl(${subjectHue}, 50%, 50%)`;
-
         let isEditing = this.state.isEditing;
+
+        let subjectHueRaw = isEditing ? this.state.editedProfile.hue : subjectInfo.profile.hue;
+        let subjectHue = typeof subjectHueRaw === 'number' ? subjectHueRaw : null;
+        let subjectColor = (subjectHue === null) ? '#aaa' : `hsl(${subjectHue}, 50%, 50%)`;
+        logProfileApp('HUE', subjectHueRaw, subjectHue, subjectColor);
 
         // make list of authors, for dropdown
         // authors come from 3 sources:
@@ -231,54 +252,79 @@ export class ProfileApp extends React.Component<AppProps, ProfileAppState> {
                             >
                             {allAuthorInfos.map(authorInfo =>
                                 <option key={authorInfo.address} value={authorInfo.address}>
-                                    @{authorInfo.shortname}.{authorInfo.pubkey.slice(0, 10)}...{authorInfo.profile.longname ? ' -- ' + authorInfo.profile.longname : null}
+                                    @{authorInfo.shortname}.{ellipsify(authorInfo.pubkey, 9)}{authorInfo.profile.longname ? ' -- ' + ellipsify(authorInfo.profile.longname, 40) : null}
                                 </option>
                             )}
                         </select>
                     </p>
                 }
-            <div style={sCard}>
+            <div style={sCardFlexbox}>
+                <div style={sCardLeft}>
+                    {/* profile pic */}
+                    <p>
+                        <span style={{
+                            display: 'inline-block',
+                            width: 100,
+                            height: 100,
+                            borderRadius: 100,
+                            backgroundColor: subjectColor,
+                        }}/>
+                    </p>
+                </div>
+                <div style={sCardRight}>
+                    {/* address, composed of shortname and pubkey */}
+                    <p>
+                        <code><b style={sLargeText}>@{subjectInfo.shortname}</b><i style={sFaint}>.{subjectInfo.pubkey}</i></code>
+                    </p>
 
-                {/* profile pic */}
-                <p>
-                    <span style={{
-                        display: 'inline-block',
-                        width: 100,
-                        height: 100,
-                        borderRadius: 100,
-                        backgroundColor: subjectColor,
-                    }}/>
-                </p>
+                    {/* longname */}
+                    <p style={sLargeText}>{
+                        isEditing
+                        ? <input type="text"
+                                style={{width: '85%', padding: 5, fontWeight: 'bold'}}
+                                placeholder="(no longname)"
+                                value={this.state.editedProfile.longname || ''}
+                                onChange={(e: any) => this.setState({editedProfile: {...this.state.editedProfile, longname: e.target.value}})}
+                                />
+                        : subjectInfo.profile.longname
+                            ? <b>{subjectInfo.profile.longname}</b>
+                            : <i style={sFaint}>(no longname)</i>
+                        }
+                    </p>
 
-                {/* edit buttons */}
-                {isMe ? <p>
-                    <i>This is you. </i>
+                    {/* edit buttons */}
+                    {isMe ? <p>
+                        <i>This is you. </i>
+                        {isEditing
+                        ? <button style={sButton} onClick={() => this._saveEdits(subjectInfo.profile)}>
+                            Save
+                        </button>
+                        : <button style={sButton} onClick={() => this._startEditing(subjectInfo.profile)}>
+                            Edit
+                        </button>
+                        }
+                    </p> : null}
+
+                    {/* color chooser */}
                     {isEditing
-                    ? <button style={sButton} onClick={() => this._saveEdits(subjectInfo.profile)}>
-                        Save
-                    </button>
-                    : <button style={sButton} onClick={() => this._startEditing(subjectInfo.profile)}>
-                        Edit
-                    </button>
+                    ? <p>
+                            Color:
+                            <input type="range" min="0" max="359" step="1"
+                                value={subjectHue === null ? 90 : subjectHue}
+                                onChange={(e : any) => {
+                                    let hue = parseNum(e.target.value);
+                                    if (hue !== null) {
+                                        this.setState({editedProfile: {...this.state.editedProfile, hue: hue}})
+                                    }
+                                }}
+                                />
+                        </p>
+                    : null
                     }
-                </p> : null}
-
-                {/* shortname and longname */}
-                <p><code><b style={{fontSize: '1.25em'}}>@{subjectInfo.shortname}</b><i>.{subjectInfo.pubkey}</i></code></p>
-                <p style={{fontSize: '1.25em'}}>{
-                    isEditing
-                    ? <input type="text"
-                            style={{width: '50%', padding: 5, fontWeight: 'bold'}}
-                            placeholder="(none)"
-                            value={this.state.editedProfile.longname || ''}
-                            onChange={(e: any) => this.setState({editedProfile: {...this.state.editedProfile, longname: e.target.value}})}
-                            />
-                    : <b>{subjectInfo.profile.longname || '(no longname set)'}</b>
-                    }
-                </p>
+                </div>
             </div>
             {/* json view */}
-            <pre style={{overflow: 'visible'}}>{JSON.stringify(subjectInfo, null, 4)}</pre>
+            <pre style={{...sFaint, overflow: 'visible'}}>{JSON.stringify(subjectInfo, null, 4)}</pre>
         </div></div>;
     }
 }

@@ -32,6 +32,17 @@ export let sortByKey = <T>(items : T[], keyFn : (a : T) => any) : void => {
     sortedByKey(items, keyFn);
 }
 
+export let parseNum = (s : string) : number | null => {
+    let n = parseInt(s, 10);
+    if (isNaN(n)) { return null; }
+    return n;
+}
+
+export let ellipsify = (s : string, len : number) : string => {
+    if (s.length <= len) { return s };
+    return s.slice(0, Math.max(1, len-3)) + '...';
+}
+
 export let randint = (min : number, max : number) : number =>
     // inclusive
     Math.floor(Math.random() * ((max+1) - min)) + min;
