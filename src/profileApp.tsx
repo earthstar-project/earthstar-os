@@ -211,20 +211,17 @@ export class ProfileApp extends React.Component<AppProps, ProfileAppState> {
 
             {/* shortname and longname */}
             <p><code><b style={{fontSize: '1.25em'}}>@{info.shortname}</b><i>.{info.pubkey}</i></code></p>
-            {info.profile.longname
-              ? <p style={{fontSize: '1.25em'}}>{
-                    editMode
-                    ? <input type="text"
-                            style={{width: '50%', padding: 5, fontWeight: 'bold'}}
-                            placeholder="(none)"
-                            value={this.state.editedProfile.longname || ''}
-                            onChange={(e: any) => this.setState({editedProfile: {...this.state.editedProfile, longname: e.target.value}})}
-                            />
-                    : <b>{info.profile.longname}</b>
-                    }
-                </p>
-              : null
-            }
+            <p style={{fontSize: '1.25em'}}>{
+                editMode
+                ? <input type="text"
+                        style={{width: '50%', padding: 5, fontWeight: 'bold'}}
+                        placeholder="(none)"
+                        value={this.state.editedProfile.longname || ''}
+                        onChange={(e: any) => this.setState({editedProfile: {...this.state.editedProfile, longname: e.target.value}})}
+                        />
+                : <b>{info.profile.longname || '(no longname set)'}</b>
+                }
+            </p>
             {/* json view */}
             <hr />
             <pre>{JSON.stringify(info, null, 4)}</pre>

@@ -68570,11 +68570,9 @@ class ProfileApp extends React.Component {
                     React.createElement("i", null,
                         ".",
                         info.pubkey))),
-            info.profile.longname
-                ? React.createElement("p", { style: { fontSize: '1.25em' } }, editMode
-                    ? React.createElement("input", { type: "text", style: { width: '50%', padding: 5, fontWeight: 'bold' }, placeholder: "(none)", value: this.state.editedProfile.longname || '', onChange: (e) => this.setState({ editedProfile: Object.assign(Object.assign({}, this.state.editedProfile), { longname: e.target.value }) }) })
-                    : React.createElement("b", null, info.profile.longname))
-                : null,
+            React.createElement("p", { style: { fontSize: '1.25em' } }, editMode
+                ? React.createElement("input", { type: "text", style: { width: '50%', padding: 5, fontWeight: 'bold' }, placeholder: "(none)", value: this.state.editedProfile.longname || '', onChange: (e) => this.setState({ editedProfile: Object.assign(Object.assign({}, this.state.editedProfile), { longname: e.target.value }) }) })
+                : React.createElement("b", null, info.profile.longname || '(no longname set)')),
             React.createElement("hr", null),
             React.createElement("pre", null, JSON.stringify(info, null, 4)));
     }
