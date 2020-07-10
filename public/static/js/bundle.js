@@ -68497,6 +68497,15 @@ let sProfilePic = {
     height: 90,
     borderRadius: 300,
     backgroundColor: '#aaa',
+    // giant letters inside
+    boxSizing: 'border-box',
+    fontFamily: 'monospace',
+    color: cCardBg,
+    fontSize: 35,
+    lineHeight: '30px',
+    padding: 15,
+    paddingLeft: 20,
+    letterSpacing: '10px',
 };
 class ProfileApp extends React.Component {
     constructor(props) {
@@ -68653,7 +68662,10 @@ class ProfileApp extends React.Component {
             let profile = subjectInfo.profile;
             CARD = React.createElement("div", { style: sCardFlexbox },
                 React.createElement("div", { style: sCardLeft },
-                    React.createElement("div", { style: Object.assign(Object.assign({}, sProfilePic), { backgroundColor: subjectColor }) })),
+                    React.createElement("div", { style: Object.assign(Object.assign({}, sProfilePic), { backgroundColor: subjectColor }) },
+                        subjectInfo.shortname.slice(0, 2),
+                        " ",
+                        subjectInfo.shortname.slice(2, 4))),
                 React.createElement("div", { style: sCardRight },
                     React.createElement("div", null,
                         React.createElement("code", null,

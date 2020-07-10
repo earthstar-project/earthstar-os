@@ -91,6 +91,15 @@ let sProfilePic : React.CSSProperties = {
     height: 90,
     borderRadius: 300,
     backgroundColor: '#aaa',
+    // giant letters inside
+    boxSizing: 'border-box',
+    fontFamily: 'monospace',
+    color: cCardBg,
+    fontSize: 35,
+    lineHeight: '30px',
+    padding: 15,
+    paddingLeft: 20,
+    letterSpacing: '10px',
 }
 
 interface ProfileAppState {
@@ -257,7 +266,9 @@ export class ProfileApp extends React.Component<AppProps, ProfileAppState> {
             CARD = <div style={sCardFlexbox}>
                 <div style={sCardLeft}>
                     {/* profile pic */}
-                    <div style={{...sProfilePic, backgroundColor: subjectColor}} />
+                    <div style={{...sProfilePic, backgroundColor: subjectColor}}>
+                        {subjectInfo.shortname.slice(0, 2)} {subjectInfo.shortname.slice(2, 4)}
+                    </div>
                 </div>
                 <div style={sCardRight}>
                     {/* address, composed of shortname and pubkey */}
