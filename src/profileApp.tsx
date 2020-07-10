@@ -230,30 +230,28 @@ export class ProfileApp extends React.Component<AppProps, ProfileAppState> {
         addAuthorInfoToList(allAuthorInfos, subjectInfo);
         sortByKey(allAuthorInfos, info => info.address);
 
-        if (allAuthorInfos.length > 0) {
-            DROPDOWN = <p>
-                View the profile of <select value={subjectInfo === null ? '' : subjectInfo.address}
-                    style={sSelect}
-                    onChange={(e) => {
-                        if (e.target.value === '') { return; }  // spacer
-                        logProfileApp('change author hash param to:', e.target.value);
-                        router.setParams({...router.params, author: e.target.value});
-                    }}
-                    >
-                    {subjectInfo === null
-                      ? <option key="nobody" value="">
-                            ---
-                        </option>
-                      : null
-                    }
-                    {allAuthorInfos.map(authorInfo =>
-                        <option key={authorInfo.address} value={authorInfo.address}>
-                            @{authorInfo.shortname}.{ellipsify(authorInfo.pubkey, 9)}{authorInfo.profile.longname ? ' -- ' + ellipsify(authorInfo.profile.longname, 40) : null}
-                        </option>
-                    )}
-                </select>
-            </p>;
-        }
+        DROPDOWN = <p>
+            View the profile of <select value={subjectInfo === null ? '' : subjectInfo.address}
+                style={sSelect}
+                onChange={(e) => {
+                    if (e.target.value === '') { return; }  // spacer
+                    logProfileApp('change author hash param to:', e.target.value);
+                    router.setParams({...router.params, author: e.target.value});
+                }}
+                >
+                {subjectInfo === null
+                    ? <option key="nobody" value="">
+                        ---
+                    </option>
+                    : null
+                }
+                {allAuthorInfos.map(authorInfo =>
+                    <option key={authorInfo.address} value={authorInfo.address}>
+                        @{authorInfo.shortname}.{ellipsify(authorInfo.pubkey, 9)}{authorInfo.profile.longname ? ' -- ' + ellipsify(authorInfo.profile.longname, 40) : null}
+                    </option>
+                )}
+            </select>
+        </p>;
 
         if (subjectInfo === null) {
             CARD = null; //<div style={sCard}>Choose an author.</div>;

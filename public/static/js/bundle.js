@@ -68632,26 +68632,24 @@ class ProfileApp extends React.Component {
         addAuthorInfoToList(allAuthorInfos, myInfo);
         addAuthorInfoToList(allAuthorInfos, subjectInfo);
         util_1.sortByKey(allAuthorInfos, info => info.address);
-        if (allAuthorInfos.length > 0) {
-            DROPDOWN = React.createElement("p", null,
-                "View the profile of ",
-                React.createElement("select", { value: subjectInfo === null ? '' : subjectInfo.address, style: sSelect, onChange: (e) => {
-                        if (e.target.value === '') {
-                            return;
-                        } // spacer
-                        logProfileApp('change author hash param to:', e.target.value);
-                        router.setParams(Object.assign(Object.assign({}, router.params), { author: e.target.value }));
-                    } },
-                    subjectInfo === null
-                        ? React.createElement("option", { key: "nobody", value: "" }, "---")
-                        : null,
-                    allAuthorInfos.map(authorInfo => React.createElement("option", { key: authorInfo.address, value: authorInfo.address },
-                        "@",
-                        authorInfo.shortname,
-                        ".",
-                        util_1.ellipsify(authorInfo.pubkey, 9),
-                        authorInfo.profile.longname ? ' -- ' + util_1.ellipsify(authorInfo.profile.longname, 40) : null))));
-        }
+        DROPDOWN = React.createElement("p", null,
+            "View the profile of ",
+            React.createElement("select", { value: subjectInfo === null ? '' : subjectInfo.address, style: sSelect, onChange: (e) => {
+                    if (e.target.value === '') {
+                        return;
+                    } // spacer
+                    logProfileApp('change author hash param to:', e.target.value);
+                    router.setParams(Object.assign(Object.assign({}, router.params), { author: e.target.value }));
+                } },
+                subjectInfo === null
+                    ? React.createElement("option", { key: "nobody", value: "" }, "---")
+                    : null,
+                allAuthorInfos.map(authorInfo => React.createElement("option", { key: authorInfo.address, value: authorInfo.address },
+                    "@",
+                    authorInfo.shortname,
+                    ".",
+                    util_1.ellipsify(authorInfo.pubkey, 9),
+                    authorInfo.profile.longname ? ' -- ' + util_1.ellipsify(authorInfo.profile.longname, 40) : null))));
         if (subjectInfo === null) {
             CARD = null; //<div style={sCard}>Choose an author.</div>;
         }
