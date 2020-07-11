@@ -3,6 +3,12 @@ import {
     randomColor,
 } from './util';
 
+/*
+    This is a React component that changes color every time it's rendered.
+    It also shows a small history of its previous colors so you can
+    see how many times it rendered in a row.
+*/
+
 let sOuter : React.CSSProperties = {
     display: 'inline-block',
     padding: 5,
@@ -30,7 +36,7 @@ let sInner : React.CSSProperties = {
 interface RainbowBugProps {
     name?: string,
     // Default is inline.
-    // For topleft or topright, the parent element must have a position set
+    // For topLeft or topRight, the parent element must have a position set
     // such as 'relative' or the absolute positioning won't work.
     position?: 'inline' | 'topLeft' | 'topRight',
 }

@@ -68766,6 +68766,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RainbowBug = void 0;
 const React = __importStar(require("react"));
 const util_1 = require("./util");
+/*
+    This is a React component that changes color every time it's rendered.
+    It also shows a small history of its previous colors so you can
+    see how many times it rendered in a row.
+*/
 let sOuter = {
     display: 'inline-block',
     padding: 5,
