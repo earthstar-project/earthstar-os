@@ -19339,8 +19339,14 @@ const log_1 = require("../util/log");
 // e.g. just ValidatorEs3, not new ValidatorEs3()
 exports.ValidatorEs3 = (_a = class {
         static pathIsValid(path) {
+            // a path is a series of one or more path segments.
+            // a path segment is a '/' followed by one or more allowed characters.
             if (!path.startsWith('/')) {
                 log_1.logWarning('invalid path: does not start with /');
+                return false;
+            }
+            if (path.endsWith('/')) {
+                log_1.logWarning('invalid path: ends with /');
                 return false;
             }
             if (path.startsWith('/@')) {
@@ -19383,6 +19389,11 @@ exports.ValidatorEs3 = (_a = class {
             // except for value, but value is hashed, so it's safe to
             // use newlines as a field separator.
             // We enforce the no-newlines rules in documentIsValid() and keyIsValid().
+            // If the document is especially malformed (wrong types or missing fields),
+            // this will throw an error.
+            if (!this._documentTypesAreValid(doc)) {
+                throw new Error("document has invalid types");
+            }
             return crypto_1.sha256([
                 doc.format,
                 doc.workspace,
@@ -19403,19 +19414,22 @@ exports.ValidatorEs3 = (_a = class {
                 return false;
             }
         }
+        static _documentTypesAreValid(doc) {
+            return (typeof doc.format === 'string'
+                && typeof doc.workspace === 'string'
+                && typeof doc.path === 'string'
+                && typeof doc.value === 'string'
+                && typeof doc.author === 'string'
+                && typeof doc.timestamp === 'number'
+                && typeof doc.signature === 'string');
+        }
         static documentIsValid(doc, futureCutoff) {
             // "futureCutoff" is a time in microseconds (milliseconds * 1000).
             // If a message is from after futureCutoff, it's not valid.
             // It defaults to 10 minutes in the future.
             const FUTURE_CUTOFF_MINUTES = 10;
             futureCutoff = futureCutoff || (Date.now() + FUTURE_CUTOFF_MINUTES * 60 * 1000) * 1000;
-            if (typeof doc.format !== 'string'
-                || typeof doc.workspace !== 'string'
-                || typeof doc.path !== 'string'
-                || typeof doc.value !== 'string'
-                || typeof doc.author !== 'string'
-                || typeof doc.timestamp !== 'number'
-                || typeof doc.signature !== 'string') {
+            if (!this._documentTypesAreValid(doc)) {
                 log_1.logWarning('documentIsValid: doc properties have wrong type(s)');
                 return false;
             }
@@ -19469,6 +19483,7 @@ exports.ValidatorEs3 = (_a = class {
                 log_1.logWarning('documentIsValid: signature contains non-printable ascii characters');
                 return false;
             }
+            // doc.value can be any unicode string.
             // Key must be valid (only printable ascii, etc)
             if (!this.pathIsValid(doc.path)) {
                 log_1.logWarning('documentIsValid: key not valid');
@@ -67309,14 +67324,18 @@ exports.createContext = Script.createContext = function (context) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
   typeof define === 'function' && define.amd ? define(['exports'], factory) :
   (factory((global.WHATWGFetch = {})));
-}(this, (function (exports) { 'use strict';
+}(this, (function (exports) {
 
+  var global = (function(self) {
+    return self
+    // eslint-disable-next-line no-invalid-this
+  })(typeof self !== 'undefined' ? self : this);
   var support = {
-    searchParams: 'URLSearchParams' in self,
-    iterable: 'Symbol' in self && 'iterator' in Symbol,
+    searchParams: 'URLSearchParams' in global,
+    iterable: 'Symbol' in global && 'iterator' in Symbol,
     blob:
-      'FileReader' in self &&
-      'Blob' in self &&
+      'FileReader' in global &&
+      'Blob' in global &&
       (function() {
         try {
           new Blob();
@@ -67325,8 +67344,8 @@ exports.createContext = Script.createContext = function (context) {
           return false
         }
       })(),
-    formData: 'FormData' in self,
-    arrayBuffer: 'ArrayBuffer' in self
+    formData: 'FormData' in global,
+    arrayBuffer: 'ArrayBuffer' in global
   };
 
   function isDataView(obj) {
@@ -67667,6 +67686,21 @@ exports.createContext = Script.createContext = function (context) {
       throw new TypeError('Body not allowed for GET or HEAD requests')
     }
     this._initBody(body);
+
+    if (this.method === 'GET' || this.method === 'HEAD') {
+      if (options.cache === 'no-store' || options.cache === 'no-cache') {
+        // Search for a '_' parameter in the query string
+        var reParamSearch = /([?&])_=[^&]*/;
+        if (reParamSearch.test(this.url)) {
+          // If it already exists then set the value with the current time
+          this.url = this.url.replace(reParamSearch, '$1_=' + new Date().getTime());
+        } else {
+          // Otherwise add a new '_' parameter to the end with the current time
+          var reQueryString = /\?/;
+          this.url += (reQueryString.test(this.url) ? '&' : '?') + '_=' + new Date().getTime();
+        }
+      }
+    }
   }
 
   Request.prototype.clone = function() {
@@ -67748,10 +67782,9 @@ exports.createContext = Script.createContext = function (context) {
     return new Response(null, {status: status, headers: {location: url}})
   };
 
-  exports.DOMException = self.DOMException;
-  try {
-    new exports.DOMException();
-  } catch (err) {
+  exports.DOMException = global.DOMException;
+
+  if (typeof exports.DOMException !== 'function') {
     exports.DOMException = function(message, name) {
       this.message = message;
       this.name = name;
@@ -67809,7 +67842,7 @@ exports.createContext = Script.createContext = function (context) {
 
       function fixUrl(url) {
         try {
-          return url === '' && self.location.href ? self.location.href : url
+          return url === '' && global.location.href ? global.location.href : url
         } catch (e) {
           return url
         }
@@ -67828,6 +67861,7 @@ exports.createContext = Script.createContext = function (context) {
           xhr.responseType = 'blob';
         } else if (
           support.arrayBuffer &&
+          request.headers.get('Content-Type') &&
           request.headers.get('Content-Type').indexOf('application/octet-stream') !== -1
         ) {
           xhr.responseType = 'arraybuffer';
@@ -67855,11 +67889,11 @@ exports.createContext = Script.createContext = function (context) {
 
   fetch.polyfill = true;
 
-  if (!self.fetch) {
-    self.fetch = fetch;
-    self.Headers = Headers;
-    self.Request = Request;
-    self.Response = Response;
+  if (!global.fetch) {
+    global.fetch = fetch;
+    global.Headers = Headers;
+    global.Request = Request;
+    global.Response = Response;
   }
 
   exports.Headers = Headers;
